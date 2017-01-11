@@ -55,19 +55,21 @@ class Py3status:
                                    stdout=fnull, stderr=fnull) == 0
 
     def online_status(self):
-        reply = {
-            'cached_until': self.py3.time_in(self.cache_timeout)
+
+        response = {
+            'cached_until': self.py3.time_in(self.cache_timeout),
+            'full_text': self.py3.safe_format(self.format, {'state': self.format_offline}),
+            'color': self.py3.COLOR_BAD
         }
 
         connected = self._connection_present()
         if connected:
-            reply['full_text'] = self.py3.safe_format(self.format, {'state': self.format_online})
-            reply['color'] = self.py3.COLOR_GOOD
-        else:
-            reply['full_text'] = self.py3.safe_format(self.format, {'state': self.format_offline})
-            reply['color'] = self.py3.COLOR_BAD
+            response = {
+                'full_text': self.py3.safe_format(self.format, {'state': self.format_online}),
+                'color': self.py3.COLOR_GOOD
+            }
 
-        return reply
+        return response
 
 
 if __name__ == "__main__":
