@@ -17,6 +17,7 @@ f = Formatter()
 
 param_dict = {
     "name": "Björk",
+    "status": "py3status",
     "number": 42,
     "pi": 3.14159265359,
     "yes": True,
@@ -1401,6 +1402,18 @@ def test_get_color_names_4():
             "format": r"\?color=rebeccapurple \?color=rebecca \?color=purple",
             "expected": {"rebecca"},
         }
+    )
+
+
+def test_startswith_1():
+    run_formatter(
+        {"format": "\?if=status^py3 start something", "expected": "start something",}
+    )
+
+
+def test_startswith_2():
+    run_formatter(
+        {"format": "\?if=status^dog start something", "expected": "",}
     )
 
 

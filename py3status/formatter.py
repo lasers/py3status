@@ -398,18 +398,12 @@ class Condition:
         if not self.default:
             info = info[1:]
 
-        if "=" in info:
-            self.variable, self.value = info.split("=")
-            self.condition = "="
-            self.check_valid = self._check_valid_condition
-        elif ">" in info:
-            self.variable, self.value = info.split(">")
-            self.condition = ">"
-            self.check_valid = self._check_valid_condition
-        elif "<" in info:
-            self.variable, self.value = info.split("<")
-            self.condition = "<"
-            self.check_valid = self._check_valid_condition
+        for x in ("=", ">", "<", "^"):
+            if x in info:
+                self.variable, self.value = info.split(x)
+                self.condition = x
+                self.check_valid = self._check_valid_condition
+                break
         else:
             self.variable = info
             self.check_valid = self._check_valid_basic
@@ -449,6 +443,8 @@ class Condition:
             return (variable > value) == self.default
         elif self.condition == "<":
             return (variable < value) == self.default
+        elif self.condition == "^":
+            return (variable.startswith(value) == self.default)
 
     def _check_valid_basic(self, get_params):
         """
