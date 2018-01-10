@@ -17,6 +17,7 @@ f = Formatter()
 
 param_dict = {
     "name": "Björk",
+    "status": "py3status",
     "number": 42,
     "pi": 3.14159265359,
     "yes": True,
@@ -26,8 +27,6 @@ param_dict = {
     "?bad name": "evil",
     "☂ Very bad name ": "☂ extremely evil",
     "long_str": "I am a long string though not too long",
-    "python2_unicode": "Björk",
-    "python2_str": "Björk",
     "zero": 0,
     "zero_str": "0",
     "zero_float": 0.0,
@@ -1432,7 +1431,156 @@ def test_get_color_names_4():
     )
 
 
-if __name__ == "__main__":
+# more conditions
+
+def test_equal_to_1():
+    run_formatter({
+        'format': '\?if=status==py3status it is equal',
+        'expected': 'it is equal'
+    })
+
+
+def test_equal_to_2():
+    run_formatter({
+        'format': '\?if=!status==py3status it is equal',
+        'expected': ''
+    })
+
+
+def test_not_equal_to_1():
+    run_formatter({
+        'format': '\?if=status!=py3status it is not equal',
+        'expected': ''
+    })
+
+
+def test_not_equal_to_2():
+    run_formatter({
+        'format': '\?if=!status!=py3status it is not equal',
+        'expected': 'it is not equal'
+    })
+
+
+def test_greater_than_or_equal_to_1():
+    run_formatter({
+        'format': '\?if=number>=39 greater than or equal to 39',
+        'expected': 'greater than or equal to 39',
+    })
+
+
+def test_greater_than_or_equal_to_2():
+    run_formatter({
+        'format': '\?if=number>=42 greater than or equal to 42',
+        'expected': 'greater than or equal to 42'
+    })
+
+
+def test_greater_than_or_equal_to_3():
+    run_formatter({
+        'format': '\?if=number>=44 greater than or equal to 44',
+        'expected': ''
+    })
+
+
+def test_greater_than_or_equal_to_4():
+    run_formatter({
+        'format': '\?if=!number>=10 greater than or equal to 10',
+        'expected': ''
+    })
+
+
+def test_less_than_or_equal_to_1():
+    run_formatter({
+        'format': '\?if=number<=15 less than or equal to 15',
+        'expected': '',
+    })
+
+
+def test_less_than_or_equal_to_2():
+    run_formatter({
+        'format': '\?if=number<=42 less than or equal to 42',
+        'expected': 'less than or equal to 42'
+    })
+
+
+def test_less_than_or_equal_to_3():
+    run_formatter({
+        'format': '\?if=number<=44 less than or equal to 44',
+        'expected': 'less than or equal to 44'
+    })
+
+
+def test_less_than_or_equal_to_4():
+    run_formatter({
+        'format': '\?if=!number<=10 less than or equal to 10',
+        'expected': 'less than or equal to 10'
+    })
+
+
+def test_contains_in_1():
+    run_formatter({
+        'format': '\?if=name~John contain something',
+        'expected': '',
+    })
+
+
+def test_contains_in_2():
+    run_formatter({
+        'format': '\?if=name!~John contain something',
+        'expected': 'contain something',
+    })
+
+
+def test_contains_in_3():
+    run_formatter({
+        'format': '\?if=!name!~Björk contain something',
+        'expected': 'contain something',
+    })
+
+
+def test_starts_with_1():
+    run_formatter({
+        'format': '\?if=status^py3 start something',
+        'expected': 'start something',
+    })
+
+
+def test_starts_with_2():
+    run_formatter({
+        'format': '\?if=status!^py3 start something',
+        'expected': '',
+    })
+
+
+def test_starts_with_3():
+    run_formatter({
+        'format': '\?if=!status!^py3 start something',
+        'expected': 'start something',
+    })
+
+
+def test_ends_with_1():
+    run_formatter({
+        'format': '\?if=status$status end something',
+        'expected': 'end something',
+    })
+
+
+def test_ends_with_2():
+    run_formatter({
+        'format': '\?if=status!$status end something',
+        'expected': '',
+    })
+
+
+def test_ends_with_3():
+    run_formatter({
+        'format': '\?if=!status!$py3status end something',
+        'expected': 'end something'
+    })
+
+
+if __name__ == '__main__':
     # run tests
     import sys
 

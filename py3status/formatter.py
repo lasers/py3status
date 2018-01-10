@@ -398,18 +398,16 @@ class Condition:
         if not self.default:
             info = info[1:]
 
-        if "=" in info:
-            self.variable, self.value = info.split("=")
-            self.condition = "="
-            self.check_valid = self._check_valid_condition
-        elif ">" in info:
-            self.variable, self.value = info.split(">")
-            self.condition = ">"
-            self.check_valid = self._check_valid_condition
-        elif "<" in info:
-            self.variable, self.value = info.split("<")
-            self.condition = "<"
-            self.check_valid = self._check_valid_condition
+        operators = [
+            "==", "!=", ">=", "<=", "=", ">", "<",
+            "!~", "~", "!^", "^", "!$", "$"
+        ]
+        for x in operators:
+            if x in info:
+                self.variable, self.value = info.split(x)
+                self.condition = x
+                self.check_valid = self._check_valid_condition
+                break
         else:
             self.variable = info
             self.check_valid = self._check_valid_basic
@@ -445,10 +443,30 @@ class Condition:
         # compare and return the result
         if self.condition == "=":
             return (variable == value) == self.default
+        elif self.condition == "==":
+            return (variable == value) == self.default
+        elif self.condition == "!=":
+            return (variable != value) == self.default
+        elif self.condition == ">=":
+            return (variable >= value) == self.default
+        elif self.condition == "<=":
+            return (variable <= value) == self.default
         elif self.condition == ">":
             return (variable > value) == self.default
         elif self.condition == "<":
             return (variable < value) == self.default
+        elif self.condition == "!~":
+            return (value not in variable) == self.default
+        elif self.condition == "~":
+            return (value in variable) == self.default
+        elif self.condition == "!^":
+            return (not variable.startswith(value)) == self.default
+        elif self.condition == "^":
+            return (variable.startswith(value)) == self.default
+        elif self.condition == "!$":
+            return (not variable.endswith(value)) == self.default
+        elif self.condition == "$":
+            return (variable.endswith(value)) == self.default
 
     def _check_valid_basic(self, get_params):
         """
