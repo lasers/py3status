@@ -7,12 +7,14 @@ Configuration parameters:
     format: display format for this module
         *(default '\?color=state WW: [\?if=state_name=connected '
         '({signal_quality_0}% at {m3gpp_operator_name}) '
-        '[{format_ipv4}][{format_ipv6}]|{state_name}] [{format_message}]')*
+        '[{format_ipv4}][\?soft  ][{format_ipv6}]|{state_name}]'
+        '[\?soft  ][{format_message}]')*
     format_ipv4: display format for ipv4 network (default '[{address}]')
     format_ipv6: display format for ipv6 network (default '[{address}]')
     format_message: display format for SMS messages
-        (default '[\?color=message {message} sms]')
-    format_message_separator: show separator if more than one (default ' ')
+        (default '\?color=message {message}')
+    format_notification: specify notification to use (default None)
+    format_separator: show separator if more than one (default ' ')
     format_stats: display format for statistics (default '{duration_hms}')
     modem: specify a modem device to use. otherwise, auto (default None)
     thresholds: specify color thresholds to use
@@ -32,7 +34,8 @@ Format placeholders:
     {m3gpp_registration_state}      network registration state, eg 1
     {m3gpp_operator_code}           network operator code, eg 496
     {m3gpp_operator_name}           network operator name, eg Py3status Telecom
-    {message}                       number of messages
+    {message}                       number of messages, eg 2
+    {messages}                      total number of messages, eg 30
     {signal_quality_0}              signal quality percentage, eg 88
     {signal_quality_1}              signal quality refreshed, eg True/False
     {state}                         network state, eg 0, 7, 11
@@ -55,14 +58,14 @@ format_ipv6 placeholders:
     {prefix}  netmask prefix
 
 format_message placeholders:
-    {index} message index
-    {message} last message received, eg: '+33601020304: hello how are you?'
-    {text} last text received, eg: 'hello how are you?'
-    {contact} last contact, eg: '+33601020304'
+    {index}   message index
+    {message} message received, eg: '+33601020304: hello how are you?'
+    {text}    text received, eg: 'hello how are you?'
+    {contact} contact, eg: '+33601020304'
 
 format_stats placeholders:
     {duration}     time since connected, in seconds, eg 171
-    {duration_hms} time since connected, in [HH:]MM:SS, eg 02:51
+    {duration_hms} time since connected, in [hh:]mm:ss, eg 02:51
     {tx_bytes}     transmit bytes
     {rx_bytes}     receive bytes
 
@@ -83,25 +86,24 @@ wwan {
 
 # show state names, and when connected, show network information too.
 wwan {
-    format = 'WWAN: [\?color=state [{format_ipv4}]'
-    format += '[{format_ipv6}] {state_name}]'
+    format = 'WWAN:[\?color=state [ {format_ipv4}]'
+    format += '[ {format_ipv6}] {state_name}]'
 }
 
 # show internet access technologies name with up/down state.
 wwan
     format = 'WWAN: [\?color=state [{access_technologies_name}]'
-    format += ' [\?if=state=11 up|down]]'
+    format += '[\?soft  ][\?if=state_name=connected up|down]]'
 }
 
 # show SMS messages only
 wwan
-    format = 'SMS: [{format_message}]'
+    format = '[SMS: {format_message}]'
 }
 
 # SMS counter
 wwan {
-    format = '{format_message_counter}'
-    format_message_counter = 'you have {counter} sms'
+    format = 'You have {message} messages.'
 }
 
 # add starter pack thresholds. you do not need to add them all.
@@ -131,6 +133,25 @@ wwan {
     format += '[([\?color=signal_quality_0 {signal_quality_0}]]'
     format += '[\?if=!signal_quality_1&color=signal_quality_1 \[!\]|] '
     format += '[\?if=state_name=connected [{format_ipv4}] [{format_stats}]]')
+    # hopefully we will simplify some of the things here one day. (DELETE ME)
+}
+
+# notify users when an event occur... such as new messages, change in state,
+# disconnected, etc. you need to specify formatting correctly so it does not
+# return anything. otherwise, you always get notifications.
+wwan {
+    # notify users on signal refreshes
+    format_notification = '\?if=signal_quality_1 Signal refresh'
+
+    # notify users on low signal percent 25%
+    format_notification = '\?if=signal_quality_0<25 Low signal'
+
+    # notify users on conneced state
+    format_notification = '[\?if=state_name=connected Connected.]'
+    format_notification += '[\?if=state_name=disconnected Disconnected.]'
+
+    # message notification
+    format_notification += '[\?if=message {format_message}]'
 }
 ```
 
@@ -144,7 +165,6 @@ down
 """
 
 from datetime import timedelta
-
 from pydbus import SystemBus
 
 STRING_MODEMMANAGER_DBUS = 'org.freedesktop.ModemManager1'
@@ -158,20 +178,18 @@ class Py3status:
     """
     # available configuration parameters
     cache_timeout = 2
-    format = (
-        '\?color=state WW: [\?if=state_name=connected '
-        '({signal_quality_0}% at {m3gpp_operator_name}) '
-        '[{format_ipv4}][ {format_ipv6}]|{state_name}] [{message} sms] [{format_message}]'
-    )
+    format = ('\?color=state WW: [\?if=state_name=connected '
+              '({signal_quality_0}% at {m3gpp_operator_name}) '
+              '[{format_ipv4}[\?soft  ]{format_ipv6}]'
+              '|{state_name}][SMS {message}, {format_message}]')
     format_ipv4 = u'[{address}]'
     format_ipv6 = u'[{address}]'
-    format_message = u'[\?if=index<1 {contact} [\?max_length=10 {text}...]]'
-    format_notification = u'[\?if=index<1 {contact} [{text}]]'
-    format_message_separator = u' '
+    format_message = u'\?if=index<1 {contact} [\?max_length=10 {text}...]'
+    format_notification = None
+    format_separator = u' '
     format_stats = u'{duration_hms}'
     modem = None
     thresholds = [(0, 'bad'), (11, 'good')]
-    allow_urgent = True  # delete me later
 
     def post_config_hook(self):
         modem_manager = ['ModemManager', '/usr/sbin/ModemManager']
@@ -305,7 +323,8 @@ class Py3status:
         }
 
         self.bus = SystemBus()
-        self.init = {'ip': []}
+        self.init = {'ip': [], 'sms_message': []}
+        self.last_notification = None
         names = [
             'current_bands_name', 'access_technologies_name',
             'm3gpp_registration_name', 'interface_name', 'ipv4', 'ipv6',
@@ -314,13 +333,21 @@ class Py3status:
         placeholders = [
             'current_bands_name', 'access_technologies_name',
             'm3gpp_registration_name', 'interface_name', 'format_ipv4',
-            'format_ipv6', 'format_stats', 'format_message', 'message'
+            'format_ipv6', 'format_stats', 'format_message', 'message*'
         ]
+        format_strings = [self.format, self.format_notification]
         for name, placeholder in zip(names, placeholders):
-            self.init[name] = self.py3.format_contains(self.format,
-                                                       placeholder)
-            if name in ['ipv4', 'ipv6'] and self.init[name]:
-                self.init['ip'].append(name)
+            self.init[name] = []
+            for format_string in format_strings:
+                if format_string:  # fails on None, [], '', etc
+                    if self.py3.format_contains(format_string, placeholder):
+                        self.init[name].append(format_string)
+                        if name in ['ipv4', 'ipv6']:
+                            if name not in self.init['ip']:
+                                self.init['ip'].append(name)
+                        if name in ['message', 'format_message']:
+                            if name not in self.init['sms_message']:
+                                self.init['sms_message'].append(name)
 
     def _get_modem_proxy(self):
         modemmanager_proxy = self.bus.get(STRING_MODEMMANAGER_DBUS)
@@ -352,31 +379,45 @@ class Py3status:
             pass
         return bearer
 
-    def _get_messages(self, modem_proxy):
-        messages = {}
-        try:
-            messages = modem_proxy.Messages
-        except:
-            pass
-
-        return messages
-
-    def _notify_message(self, wwan_data):
-        # TODO: make format_notification (OPTIONAL)
-        # =========================================
-        previous_messages_counter = int(
-            self.py3.storage_get('wwan_messages_counter') or 0)
-        # set new message placeholder to true
-        if wwan_data['message'] > previous_messages_counter:
-            self.py3.notify_user(notification)
-            # notify user with last message
-            # save last counter
-            self.py3.storage_set('wwan_messages_counter', wwan_data['message'])
-
-        return wwan_data
-
     def _get_interface(self, bearer):
         return self.bus.get(STRING_MODEMMANAGER_DBUS, bearer).Interface
+
+    def _get_message_data(self, modem_proxy):
+        message_data = {}
+        try:
+            message_data = modem_proxy.Messages
+        except:
+            pass
+        return message_data
+
+    def _count_messages(self, message_data, storage_name='messages'):
+        count_messages = len(message_data)
+        last_count_messages = self.py3.storage_get(storage_name) or 0
+        self.py3.storage_set(storage_name, count_messages)
+        count_message = max(0, count_messages - last_count_messages)
+        return count_message, count_messages
+
+    def _manipulate_message(self, data):
+        new_message = []
+        for index, msg in enumerate(data):
+            try:
+                sms_proxy = self.bus.get(STRING_MODEMMANAGER_DBUS, msg)
+                new_message.append(
+                    self.py3.safe_format(
+                        self.format_message, {
+                            'index': index,
+                            'id': msg.rsplit('/', 1)[-1],
+                            'contact': sms_proxy.Number,
+                            'text': sms_proxy.Text,
+                            'timestamp': sms_proxy.Timestamp,
+                        }))
+            except:
+                break
+
+        format_separator = self.py3.safe_format(self.format_separator)
+        format_message = self.py3.composite_join(format_separator, new_message)
+
+        return format_message
 
     def _get_network_config(self, bearer):
         bearer_proxy = self.bus.get(STRING_MODEMMANAGER_DBUS, bearer)
@@ -405,48 +446,16 @@ class Py3status:
         return new_data
 
     def wwan(self):
+        urgent = False
+        name = '_name'
+
+        # get wwan data
         modem_proxy = self._get_modem_proxy()
         wwan_data = self._get_modem_status_data(modem_proxy)
         wwan_data = self._organize(wwan_data)
 
-        # notify last message
-        if self.init['message'] or self.allow_urgent == True:
-            messages_data = self._get_messages(modem_proxy)
-            message_counter = (len(messages_data) or 0)
-            wwan_data['message'] = message_counter
-
-        # messages sms
-        if self.init['format_message']:
-            new_messages = []
-            messages_data = self._get_messages(modem_proxy)
-            for index, msg in enumerate(messages_data):
-                id = msg.rsplit('/', 1)[-1]
-                sms_proxy = {}
-                try:
-                    sms_proxy = self.bus.get(STRING_MODEMMANAGER_DBUS, msg)
-                except:
-                    break
-                contact = sms_proxy.Number
-                text = sms_proxy.Text
-                new_messages.append(
-                    self.py3.safe_format(
-                        self.format_message, {
-                            'index': index,
-                            'id': id,
-                            'contact': contact,
-                            'text': text,
-                        }))
-            format_message_separator = self.py3.safe_format(
-                self.format_message_separator)
-            format_message = self.py3.composite_join(format_message_separator,
-                                                     new_messages)
-            wwan_data['format_message'] = format_message
-
-            wwan_data = self._notify_message(wwan_data)
-
         # state and name
         key = 'state'
-        name = '_name'
         wwan_data[key] = wwan_data.get(key, 0)
         wwan_data[key + name] = self.network_states[wwan_data[key]]
 
@@ -475,12 +484,11 @@ class Py3status:
             # registration state and name
             if self.init['m3gpp_registration_name']:
                 key = 'm3gpp_registration_state'
-                wwan_data[key
-                          + name] = self.registration_states[wwan_data[key]]
+                new_key = key + name
+                wwan_data[new_key] = self.registration_states[wwan_data[key]]
 
             # get bearer
             bearer = self._get_bearer(modem_proxy)
-
             if bearer:
                 # interface name
                 if self.init['interface_name']:
@@ -491,29 +499,56 @@ class Py3status:
                     network_config = self._get_network_config(bearer)
                     format_ip = {
                         'ipv4': self.format_ipv4,
-                        'ipv6': self.format_ipv6
+                        'ipv6': self.format_ipv6,
                     }
-                    for x in self.init['ip']:
-                        wwan_data['format_' + x] = self.py3.safe_format(
-                            format_ip[x], network_config.get(x, {}))
+                    for ip in self.init['ip']:
+                        wwan_data['format_' + ip] = self.py3.safe_format(
+                            format_ip[ip], network_config.get(ip, {}))
 
                 # network connection statistics
                 if self.init['stats']:
                     stats = self._organize(self._get_stats(bearer))
-                    stats['duration_hms'] = str(
-                        timedelta(seconds=stats.get('duration', 0)))
+                    if stats:
+                        stats['duration_hms'] = format(
+                            timedelta(seconds=stats['duration']))
                     wwan_data['format_stats'] = self.py3.safe_format(
                         self.format_stats, stats)
+
+        # message and format message
+        if self.init['sms_message']:
+            if wwan_data['state'] >= 1:
+                message_data = self._get_message_data(modem_proxy)
+                # count messages
+                keys = ['message', 'messages']
+                wwan_data.update(zip(keys, self._count_messages(message_data)))
+                if wwan_data['message']:
+                    urgent = True
+                # format sms messages?
+                if self.init['format_message']:
+                    wwan_data['format_message'] = self._manipulate_message(
+                        message_data)
 
         # thresholds
         for k, v in wwan_data.items():
             if isinstance(v, (float, int)):
                 self.py3.threshold_get_color(v, k)
 
-        return {
+        # notifications
+        if self.format_notification:
+            composite = self.py3.safe_format(self.format_notification, wwan_data)
+            notification = self.py3.get_composite_string(composite)
+
+            if notification != self.last_notification:
+                self.py3.notify_user(composite)
+            self.last_notification = notification
+
+        response = {
             'cached_until': self.py3.time_in(self.cache_timeout),
             'full_text': self.py3.safe_format(self.format, wwan_data)
         }
+        if urgent:
+            response['urgent'] = True
+        return response
 
 
 if __name__ == "__main__":
