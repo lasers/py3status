@@ -85,8 +85,8 @@ class Py3status:
             raise Exception(STRING_NOT_AVAILABLE)
 
         self.format = self.py3.update_placeholder_formats(
-            self.format, {'level': ':d'}
-        )
+            self.format, {'level': ':d'})
+
         # check for an error code and an output
         self.xbacklight = False
         try:
@@ -126,7 +126,8 @@ class Py3status:
             return float(level)
         for brightness_line in open("%s/brightness" % self.device, 'rb'):
             brightness = int(brightness_line)
-        for brightness_max_line in open("%s/max_brightness" % self.device, 'rb'):
+        for brightness_max_line in open("%s/max_brightness" % self.device,
+                                        'rb'):
             brightness_max = int(brightness_max_line)
         return brightness * 100 / brightness_max
 
