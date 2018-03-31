@@ -19,7 +19,6 @@ from py3status.request import HttpResponse
 from py3status.storage import Storage
 from py3status.util import Gradiants
 
-
 PY3_CACHE_FOREVER = -1
 PY3_LOG_ERROR = 'error'
 PY3_LOG_INFO = 'info'
@@ -116,7 +115,8 @@ class Py3:
         self._threshold_gradients = {}
 
         if module:
-            self._i3s_config = module._py3_wrapper.config['py3_config']['general']
+            self._i3s_config = module._py3_wrapper.config['py3_config'][
+                'general']
             self._module_full_name = module.module_full_name
             self._output_modules = module._py3_wrapper.output_modules
             self._py3status_module = module.module_class
@@ -166,8 +166,8 @@ class Py3:
         if color.startswith('#'):
             color = color.upper()
             if len(color) == 4:
-                color = ('#' + color[1] + color[1] + color[2] +
-                         color[2] + color[3] + color[3])
+                color = ('#' + color[1] + color[1] + color[2] + color[2] +
+                         color[3] + color[3])
             return color
 
         name = 'color_%s' % color
@@ -229,8 +229,7 @@ class Py3:
             error_frame = error_frame.f_back
             frame_skip -= 1
         self._py3_wrapper.report_exception(
-            msg, notify_user=False, error_frame=error_frame
-        )
+            msg, notify_user=False, error_frame=error_frame)
 
     def error(self, msg, timeout=None):
         """
@@ -243,7 +242,11 @@ class Py3:
         """
         raise ModuleErrorException(msg, timeout)
 
-    def flatten_dict(self, d, delimiter='-', intermediates=False, parent_key=None):
+    def flatten_dict(self,
+                     d,
+                     delimiter='-',
+                     intermediates=False,
+                     parent_key=None):
         """
         Flatten a dictionary.
 
@@ -305,7 +308,9 @@ class Py3:
             if isinstance(v, list):
                 v = dict(enumerate(v))
             if isinstance(v, collections.Mapping):
-                items.extend(self.flatten_dict(v, delimiter, intermediates, str(k)).items())
+                items.extend(
+                    self.flatten_dict(v, delimiter, intermediates,
+                                      str(k)).items())
             else:
                 items.append((str(k), v))
         return dict(items)
@@ -435,19 +440,16 @@ class Py3:
         checking.
         """
 
-        return (
-            event.get('name') == self._module.module_name and
-            event.get('instance') == self._module.module_inst
-        )
+        return (event.get('name') == self._module.module_name
+                and event.get('instance') == self._module.module_inst)
 
     def log(self, message, level=LOG_INFO):
         """
         Log the message.
         The level must be one of LOG_ERROR, LOG_INFO or LOG_WARNING
         """
-        assert level in [
-            self.LOG_ERROR, self.LOG_INFO, self.LOG_WARNING
-        ], 'level must be LOG_ERROR, LOG_INFO or LOG_WARNING'
+        assert level in [self.LOG_ERROR, self.LOG_INFO, self.LOG_WARNING
+                         ], 'level must be LOG_ERROR, LOG_INFO or LOG_WARNING'
 
         # nicely format logs if we can using pretty print
         if isinstance(message, (dict, list, set, tuple)):
@@ -458,8 +460,8 @@ class Py3:
                 message = '\n' + message
         except:
             pass
-        message = 'Module `{}`: {}'.format(
-            self._module.module_full_name, message)
+        message = 'Module `{}`: {}'.format(self._module.module_full_name,
+                                           message)
         self._py3_wrapper.log(message, level)
 
     def update(self, module_name=None):
@@ -491,8 +493,7 @@ class Py3:
         Trigger an event on a named module.
         """
         if module_name:
-            self._py3_wrapper.events_thread.process_event(
-                module_name, event)
+            self._py3_wrapper.events_thread.process_event(module_name, event)
 
     def prevent_refresh(self):
         """
@@ -712,11 +713,13 @@ class Py3:
         """
 
         return self._formatter.update_placeholder_formats(
-            format_string, formats
-        )
+            format_string, formats)
 
-    def safe_format(self, format_string, param_dict=None,
-                    force_composite=False, attr_getter=None):
+    def safe_format(self,
+                    format_string,
+                    param_dict=None,
+                    force_composite=False,
+                    attr_getter=None):
         """
         Parser for advanced formatting.
 
@@ -776,11 +779,13 @@ class Py3:
             )
         except Exception:
             self._report_exception(
-                u'Invalid format `{}`'.format(format_string)
-            )
+                u'Invalid format `{}`'.format(format_string))
             return 'invalid format'
 
-    def build_composite(self, format_string, param_dict=None, composites=None,
+    def build_composite(self,
+                        format_string,
+                        param_dict=None,
+                        composites=None,
                         attr_getter=None):
         """
         .. note::
@@ -813,8 +818,7 @@ class Py3:
             )
         except Exception:
             self._report_exception(
-                u'Invalid format `{}`'.format(format_string)
-            )
+                u'Invalid format `{}`'.format(format_string))
             return [{'full_text': 'invalid format'}]
 
     def composite_update(self, item, update_dict, soft=False):
@@ -844,6 +848,12 @@ class Py3:
         The item may be a string, dict, list of dicts or a Composite.
         """
         return Composite(item)
+
+    def get_composite_string(self, format_string):
+        """
+        Return a string from a Composite.
+        """
+        return format_string.text()
 
     def is_composite(self, item):
         """
@@ -880,18 +890,22 @@ class Py3:
             command = shlex.split(command)
         try:
             return Popen(
-                command, stdout=PIPE, stderr=PIPE, close_fds=True
-            ).wait()
+                command, stdout=PIPE, stderr=PIPE, close_fds=True).wait()
         except Exception as e:
             # make a pretty command for error loggings and...
             if isinstance(command, basestring):
                 pretty_cmd = command
             else:
                 pretty_cmd = ' '.join(command)
-            msg = 'Command `{cmd}` {error}'.format(cmd=pretty_cmd, error=e.errno)
+            msg = 'Command `{cmd}` {error}'.format(
+                cmd=pretty_cmd, error=e.errno)
             raise exceptions.CommandError(msg, error_code=e.errno)
 
-    def command_output(self, command, shell=False, capture_stderr=False, localized=False):
+    def command_output(self,
+                       command,
+                       shell=False,
+                       capture_stderr=False,
+                       localized=False):
         """
         Run a command and return its output as unicode.
         The command can either be supplied as a sequence or string.
@@ -916,9 +930,14 @@ class Py3:
         env = self._english_env if not localized else None
 
         try:
-            process = Popen(command, stdout=PIPE, stderr=stderr, close_fds=True,
-                            universal_newlines=True, shell=shell,
-                            env=env)
+            process = Popen(
+                command,
+                stdout=PIPE,
+                stderr=stderr,
+                close_fds=True,
+                universal_newlines=True,
+                shell=shell,
+                env=env)
         except Exception as e:
             msg = 'Command `{cmd}` {error}'.format(cmd=pretty_cmd, error=e)
             raise exceptions.CommandError(msg, error_code=e.errno)
@@ -941,17 +960,15 @@ class Py3:
                 output_oneline = output.replace('\n', ' ')
                 if output_oneline:
                     msg += ' ({output})'
-                msg = msg.format(cmd=pretty_cmd, error=retcode, output=output_oneline)
+                msg = msg.format(
+                    cmd=pretty_cmd, error=retcode, output=output_oneline)
                 raise exceptions.CommandError(
-                    msg, error_code=retcode, error=error, output=output
-                )
+                    msg, error_code=retcode, error=error, output=output)
         if error:
             msg = "Command '{cmd}' had error {error}".format(
-                cmd=pretty_cmd, error=error
-            )
+                cmd=pretty_cmd, error=error)
             raise exceptions.CommandError(
-                msg, error_code=retcode, error=error, output=output
-            )
+                msg, error_code=retcode, error=error, output=output)
         return output
 
     def _storage_init(self):
@@ -1078,12 +1095,15 @@ class Py3:
             # if gradients are enabled then we use them
             if self._get_config_setting('gradients'):
                 try:
-                    colors, minimum, maximum = self._threshold_gradients[name_used]
+                    colors, minimum, maximum = self._threshold_gradients[
+                        name_used]
                 except KeyError:
-                    colors = self._gradients.make_threshold_gradient(self, thresholds)
+                    colors = self._gradients.make_threshold_gradient(
+                        self, thresholds)
                     minimum = min(thresholds)[0]
                     maximum = max(thresholds)[0]
-                    self._threshold_gradients[name_used] = (colors, minimum, maximum)
+                    self._threshold_gradients[name_used] = (colors, minimum,
+                                                            maximum)
 
                 if value < minimum:
                     color = colors[0]
@@ -1091,7 +1111,8 @@ class Py3:
                     color = colors[-1]
                 else:
                     value -= minimum
-                    col_index = int(((len(colors) - 1) / (maximum - minimum)) * value)
+                    col_index = int(
+                        ((len(colors) - 1) / (maximum - minimum)) * value)
                     color = colors[col_index]
 
             elif color is None:
@@ -1111,8 +1132,14 @@ class Py3:
 
         return color
 
-    def request(self, url, params=None, data=None, headers=None,
-                timeout=None, auth=None, cookiejar=None):
+    def request(self,
+                url,
+                params=None,
+                data=None,
+                headers=None,
+                timeout=None,
+                auth=None,
+                cookiejar=None):
         """
         Make a request to a url and retrieve the results.
 
@@ -1139,10 +1166,11 @@ class Py3:
         if headers is None:
             headers = {}
 
-        return HttpResponse(url,
-                            params=params,
-                            data=data,
-                            headers=headers,
-                            timeout=timeout,
-                            auth=auth,
-                            cookiejar=cookiejar)
+        return HttpResponse(
+            url,
+            params=params,
+            data=data,
+            headers=headers,
+            timeout=timeout,
+            auth=auth,
+            cookiejar=cookiejar)
