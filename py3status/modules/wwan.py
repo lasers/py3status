@@ -166,6 +166,7 @@ down
 
 from datetime import timedelta
 from pydbus import SystemBus
+from hashlib import sha256
 
 STRING_MODEMMANAGER_DBUS = 'org.freedesktop.ModemManager1'
 STRING_MODEMMANAGER_SMS_PATH = '/org/freedesktop/ModemManager1/SMS/'
