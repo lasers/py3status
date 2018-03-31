@@ -399,7 +399,7 @@ class Py3status:
 
     def _manipulate_message(self, data):
         new_message = []
-        for index, msg in enumerate(data):
+        for index, msg in sorted(enumerate(data, 1), reverse=True):
             try:
                 sms_proxy = self.bus.get(STRING_MODEMMANAGER_DBUS, msg)
                 new_message.append(
