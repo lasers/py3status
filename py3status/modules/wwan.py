@@ -325,6 +325,7 @@ class Py3status:
         self.bus = SystemBus()
         self.init = {'ip': [], 'sms_message': []}
         self.last_notification = None
+        self.last_messages = 0
         names = [
             'current_bands_name', 'access_technologies_name',
             'm3gpp_registration_name', 'interface_name', 'ipv4', 'ipv6',
@@ -390,11 +391,10 @@ class Py3status:
             pass
         return message_data
 
-    def _count_messages(self, message_data, storage_name='messages'):
+    def _count_messages(self, message_data):
         count_messages = len(message_data)
-        last_count_messages = self.py3.storage_get(storage_name) or 0
-        self.py3.storage_set(storage_name, count_messages)
-        count_message = max(0, count_messages - last_count_messages)
+        count_message = max(0, count_messages - self.last_messages)
+        self.last_messages = count_messages
         return count_message, count_messages
 
     def _manipulate_message(self, data):
