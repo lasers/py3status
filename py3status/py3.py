@@ -853,7 +853,10 @@ class Py3:
         """
         Return a string from a Composite.
         """
-        return format_string.text()
+        if isinstance(format_string, Composite):
+            return format_string.text()
+        else:
+            return ''
 
     def is_composite(self, item):
         """

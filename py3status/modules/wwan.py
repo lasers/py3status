@@ -535,7 +535,8 @@ class Py3status:
 
         # notifications
         if self.format_notification:
-            composite = self.py3.safe_format(self.format_notification, wwan_data)
+            composite = self.py3.safe_format(self.format_notification,
+                                             wwan_data)
             notification = self.py3.get_composite_string(composite)
 
             if notification != self.last_notification:
