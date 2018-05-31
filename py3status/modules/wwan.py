@@ -165,6 +165,7 @@ down
 """
 
 from datetime import timedelta
+
 from pydbus import SystemBus
 
 STRING_MODEMMANAGER_DBUS = 'org.freedesktop.ModemManager1'
@@ -181,7 +182,7 @@ class Py3status:
     format = ('\?color=state WW: [\?if=state_name=connected '
               '({signal_quality_0}% at {m3gpp_operator_name}) '
               '[{format_ipv4}[\?soft  ]{format_ipv6}]'
-              '|{state_name}][SMS {message}, {format_message}]')
+              '|{state_name}] [SMS {message} [{format_message}]]')
     format_ipv4 = u'[{address}]'
     format_ipv6 = u'[{address}]'
     format_message = u'\?if=index<1 {contact} [\?max_length=10 {text}...]'
@@ -324,8 +325,12 @@ class Py3status:
 
         self.bus = SystemBus()
         self.init = {'ip': [], 'sms_message': []}
-        self.last_notification = None
+        self.last_notification = self.py3.storage_get(
+            'last_notification') or None
+        self.py3.log(self.last_notification)
+
         self.last_messages = 0
+
         names = [
             'current_bands_name', 'access_technologies_name',
             'm3gpp_registration_name', 'interface_name', 'ipv4', 'ipv6',
@@ -523,6 +528,7 @@ class Py3status:
                 wwan_data.update(zip(keys, self._count_messages(message_data)))
                 if wwan_data['message']:
                     urgent = True
+
                 # format sms messages?
                 if self.init['format_message']:
                     wwan_data['format_message'] = self._manipulate_message(
@@ -539,14 +545,17 @@ class Py3status:
                                              wwan_data)
             notification = self.py3.get_composite_string(composite)
 
-            if notification != self.last_notification:
+            if notification and notification != self.last_notification:
+                self.last_notification = notification
+                self.py3.storage_set('last_notification',
+                                     self.last_notification)
                 self.py3.notify_user(composite)
-            self.last_notification = notification
 
         response = {
             'cached_until': self.py3.time_in(self.cache_timeout),
             'full_text': self.py3.safe_format(self.format, wwan_data)
         }
+
         if urgent:
             response['urgent'] = True
         return response
