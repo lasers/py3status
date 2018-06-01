@@ -127,8 +127,7 @@ class Py3status:
             return float(level)
         for brightness_line in open("%s/brightness" % self.device, 'rb'):
             brightness = int(brightness_line)
-        for brightness_max_line in open("%s/max_brightness" % self.device,
-                                        'rb'):
+        for brightness_max_line in open("%s/max_brightness" % self.device, 'rb'):
             brightness_max = int(brightness_max_line)
         return brightness * 100 / brightness_max
 

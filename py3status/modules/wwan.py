@@ -13,8 +13,8 @@ Configuration parameters:
     format_ipv6: display format for ipv6 network (default '[{address}]')
     format_message: display format for SMS messages
         (default '\?color=message {message}')
+    format_message_separator: show separator if more than one (default ' ')
     format_notification: specify notification to use (default None)
-    format_separator: show separator if more than one (default ' ')
     format_stats: display format for statistics (default '{duration_hms}')
     modem: specify a modem device to use. otherwise, auto (default None)
     thresholds: specify color thresholds to use
@@ -186,8 +186,8 @@ class Py3status:
     format_ipv4 = u'[{address}]'
     format_ipv6 = u'[{address}]'
     format_message = u'\?if=index<1 {contact} [\?max_length=10 {text}...]'
+    format_message_separator = u' '
     format_notification = None
-    format_separator = u' '
     format_stats = u'{duration_hms}'
     modem = None
     thresholds = [(0, 'bad'), (11, 'good')]
@@ -325,11 +325,8 @@ class Py3status:
 
         self.bus = SystemBus()
         self.init = {'ip': [], 'sms_message': []}
-        self.last_notification = self.py3.storage_get(
-            'last_notification') or None
-        self.py3.log(self.last_notification)
-
         self.last_messages = 0
+        self.last_notification = self.py3.storage_get('last_notification')
 
         names = [
             'current_bands_name', 'access_technologies_name',
@@ -419,8 +416,8 @@ class Py3status:
             except:
                 break
 
-        format_separator = self.py3.safe_format(self.format_separator)
-        format_message = self.py3.composite_join(format_separator, new_message)
+        format_message_separator = self.py3.safe_format(self.format_message_separator)
+        format_message = self.py3.composite_join(format_message_separator, new_message)
 
         return format_message
 
@@ -541,14 +538,12 @@ class Py3status:
 
         # notifications
         if self.format_notification:
-            composite = self.py3.safe_format(self.format_notification,
-                                             wwan_data)
+            composite = self.py3.safe_format(self.format_notification, wwan_data)
             notification = self.py3.get_composite_string(composite)
 
             if notification and notification != self.last_notification:
                 self.last_notification = notification
-                self.py3.storage_set('last_notification',
-                                     self.last_notification)
+                self.py3.storage_set('last_notification', self.last_notification)
                 self.py3.notify_user(composite)
 
         response = {
