@@ -1,224 +1,144 @@
 # -*- coding: utf-8 -*-
 """
-Display song currently playing in mpd.
+Display songs currently playing in Music Player Daemon.
 
 Configuration parameters:
-    cache_timeout: how often we refresh this module in seconds (default 2)
-    format: template string (see below)
-        (default '{state} [[[{artist}] - {title}]|[{file}]]')
-    hide_on_error: hide the status if an error has occurred (default False)
-    hide_when_paused: hide the status if state is paused (default False)
-    hide_when_stopped: hide the status if state is stopped (default True)
-    host: mpd host (default 'localhost')
-    max_width: maximum status length (default 120)
-    password: mpd password (default None)
-    port: mpd port (default '6600')
-    state_pause: label to display for "paused" state (default '[pause]')
-    state_play: label to display for "playing" state (default '[play]')
-    state_stop: label to display for "stopped" state (default '[stop]')
-
-Color options:
-    color_pause: Paused, default color_degraded
-    color_play: Playing, default color_good
-    color_stop: Stopped, default color_bad
+    cache_timeout: refresh interval for this module (default 5)
+    format: display format for this module
+        (default '\?color=state [{artist} - {title}|{file}]')
+    host: specify server host to use (default 'localhost')
+    password: specify server password to use (default None)
+    port: specify server port to use (default 6600)
+    thresholds: specify color thresholds to use
+        (default [('stop', 'bad'), ('pause', 'degraded'), ('play', 'good')])
 
 Format placeholders:
-    {state} state (paused, playing. stopped) can be defined via `state_..`
-        configuration parameters
-    Refer to the mpc(1) manual page for the list of available placeholders to
-    be used in the format.  Placeholders should use braces `{}` rather than
-    percent `%%` eg `{artist}`.
-    Every placeholder can also be prefixed with
-    `next_` to retrieve the data for the song following the one currently
-    playing.
+    {artist}         eg Music For Programming
+    {audio}          eg 44100:24:2
+    {bitrate}        eg 112
+    {consume}        eg 0
+    {date}           eg 2018
+    {duration}       eg 7547.663
+    {elapsed}        eg 8.626
+    {file}           eg music_for_programming_50-misc.works.mp3
+    {id}             eg 4
+    {last-modified}  eg 2018-07-17T16:21:16Z
+    {mixrampdb}      eg 0.000000
+    {playlist}       eg 6
+    {playlistlength} eg 2
+    {pos}            eg 1
+    {random}         eg 0
+    {repeat}         eg 0
+    {single}         eg 0
+    {song}           eg 1
+    {songid}         eg 4
+    {state}          eg pause
+    {time}           eg 7548
+    {title}          eg Episode 50 (Compiled by Misc.)
+    {volume}         eg 100
 
 Requires:
-    python-mpd2: (NOT python2-mpd2)
-```
-# pip install python-mpd2
-```
+    python-mpd2: a Python MPD client library
 
-Note: previously formats using %field% where allowed for this module, but
-standard placeholders should be used.
-
-Examples of `format`
+Examples:
 ```
-# Show state and (artist -) title, if no title fallback to file:
-{state} [[[{artist} - ]{title}]|[{file}]]
-
-# Show state, [duration], title (or file) and next song title (or file):
-{state} \[{time}\] [{title}|{file}] → [{next_title}|{next_file}]
 ```
 
 @author shadowprince, zopieux
 @license Eclipse Public License
 
 SAMPLE OUTPUT
-{'color': '#00ff00', 'full_text': '[play] Music For Programming - Idol Eyes'}
+{'color': '#00ff00', 'full_text': 'Music For Programming - Idol Eyes'}
 
 paused
-{'color': '#ffff00', 'full_text': '[pause] Music For Programming - Idol Eyes'}
+{'color': '#ffff00', 'full_text': 'Music For Programming - Idol Eyes'}
 
 stopped
-{'color': '#ff0000', 'full_text': '[stop] Music For Programming - Idol Eyes'}
+{'color': '#ff0000', 'full_text': 'Music For Programming - Idol Eyes'}
 """
 
-import datetime
-import re
-import socket
-from mpd import MPDClient, CommandError, ConnectionError
-
-
-def song_attr(song, attr):
-    def parse_mtime(date_str):
-        return datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
-
-    if attr == 'time':
-        try:
-            duration = int(song['time'])
-            if duration > 0:
-                minutes, seconds = divmod(duration, 60)
-                return '{:d}:{:02d}'.format(minutes, seconds)
-            raise ValueError
-        except (KeyError, ValueError):
-            return ''
-    elif attr == 'position':
-        try:
-            return '{}'.format(int(song['pos']) + 1)
-        except (KeyError, ValueError):
-            return ''
-    elif attr == 'mtime':
-        return parse_mtime(song['last-modified']).strftime('%c')
-    elif attr == 'mdate':
-        return parse_mtime(song['last-modified']).strftime('%x')
-
-    return song.get(attr, '')
+from mpd import MPDClient
 
 
 class Py3status:
     """
     """
+
     # available configuration parameters
-    cache_timeout = 2
-    format = '{state} [[[{artist}] - {title}]|[{file}]]'
-    hide_on_error = False
-    hide_when_paused = False
-    hide_when_stopped = True
-    host = 'localhost'
-    max_width = 120
+    cache_timeout = 5
+    format = "\?color=state [{artist} - {title}|{file}]"
+    host = "localhost"
     password = None
-    port = '6600'
-    state_pause = '[pause]'
-    state_play = '[play]'
-    state_stop = '[stop]'
+    port = 6600
+    thresholds = [("stop", "bad"), ("pause", "degraded"), ("play", "good")]
 
     def post_config_hook(self):
-        # Convert from %placeholder% to {placeholder}
-        # This is not perfect but should be good enough
-        if not self.py3.get_placeholders_list(self.format) and '%' in self.format:
-            self.format = re.sub('%([a-z]+)%', r'{\1}', self.format)
-            self.py3.log('Old % style format DEPRECATED use { style format')
-        # class variables:
         self.client = None
+        self.client_timeout = 10
+        self.thresholds_init = self.py3.get_color_names_list(self.format)
+
+        self.placeholders = []
+        for x in self.py3.get_placeholders_list(self.format):
+            if x in ["elapsed", "duration", "time", "pos"]:
+                self.placeholders.append(x)
 
     def _get_mpd(self, disconnect=False):
         if disconnect:
+            if self.client is not None:
+                try:
+                    self.client.disconnect()
+                finally:
+                    self.client = None
+        else:
             try:
-                self.client.disconnect()
-            finally:
+                if self.client is None:
+                    self.client = MPDClient()
+                    self.client.timeout = self.client_timeout
+                    self.client.connect(host=self.host, port=self.port)
+                    if self.password:
+                        self.client.password(self.password)
+                return self.client
+            except Exception as e:
                 self.client = None
-            return
+                raise e
+
+    def mpd_status(self):
+        mpd_data = {}
 
         try:
-            if self.client is None:
-                self.client = MPDClient()
-                self.client.connect(host=self.host, port=self.port)
-                if self.password:
-                    self.client.password(self.password)
-            return self.client
-        except (socket.error, ConnectionError, CommandError) as e:
-            self.client = None
-            raise e
-
-    def _state_character(self, state):
-        if state == 'play':
-            return self.state_play
-        elif state == 'pause':
-            return self.state_pause
-        elif state == 'stop':
-            return self.state_stop
-        return '?'
-
-    def current_track(self):
-        try:
-            status = self._get_mpd().status()
-            song = int(status.get('song', 0))
-            next_song = int(status.get('nextsong', 0))
-
-            state = status.get('state')
-
-            if ((state == 'pause' and self.hide_when_paused) or
-                    (state == 'stop' and self.hide_when_stopped)):
-                text = ''
-
-            else:
-                playlist_info = self._get_mpd().playlistinfo()
-                try:
-                    song = playlist_info[song]
-                except IndexError:
-                    song = {}
-                try:
-                    next_song = playlist_info[next_song]
-                except IndexError:
-                    next_song = {}
-
-                song['state'] = next_song['state'] \
-                              = self._state_character(state)
-
-                def attr_getter(attr):
-                    if attr.startswith('next_'):
-                        return song_attr(next_song, attr[5:])
-                    return song_attr(song, attr)
-
-                text = self.py3.safe_format(self.format, attr_getter=attr_getter)
-
-        except ValueError:
-            # when status.get(...) returns None; e.g. during reversal of playlist
-            text = "No song information!"
-            state = None
-        except socket.error:
-            text = "Failed to connect to mpd!"
-            state = None
-        except ConnectionError:
-            text = "Error while connecting to mpd!"
-            state = None
+            client = self._get_mpd()
+            for query in [client.status, client.currentsong]:
+                mpd_data.update(query())
+        except Exception as e:
             self._get_mpd(disconnect=True)
-        except CommandError:
-            text = "Failed to authenticate to mpd!"
-            state = None
-            self._get_mpd(disconnect=True)
+            self.py3.error(format(e))
 
-        if len(text) > self.max_width:
-            text = u'{}...'.format(text[:self.max_width - 3])
+        for x in self.thresholds_init:
+            if x in mpd_data:
+                self.py3.threshold_get_color(mpd_data[x], x)
 
-        response = {
-            'cached_until': self.py3.time_in(self.cache_timeout),
-            'full_text': text if state or not self.hide_on_error else "",
+        for x in self.placeholders:
+            try:
+                value = int(mpd_data.get(x, ""))
+                if x in ["elapsed", "duration", "time"]:
+                    minutes, seconds = divmod(value, 60)
+                    value = "{:d}:{:02d}".format(minutes, seconds)
+                elif x == "pos":
+                    value += 1
+                mpd_data[x] = value
+            except (KeyError, ValueError):
+                pass
+
+        return {
+            "cached_until": self.py3.time_in(self.cache_timeout),
+            "full_text": self.py3.safe_format(self.format, mpd_data),
         }
-
-        if state:
-            if state == 'play':
-                response['color'] = self.py3.COLOR_PLAY or self.py3.COLOR_GOOD
-            elif state == 'pause':
-                response['color'] = (self.py3.COLOR_PAUSE or
-                                     self.py3.COLOR_DEGRADED)
-            elif state == 'stop':
-                response['color'] = self.py3.COLOR_STOP or self.py3.COLOR_BAD
-
-        return response
 
     def kill(self):
         self._get_mpd(disconnect=True)
+
+    def on_click(self, event):
+        self._get_mpd().pause()
 
 
 if __name__ == "__main__":
@@ -226,4 +146,5 @@ if __name__ == "__main__":
     Run module in test mode.
     """
     from py3status.module_test import module_test
+
     module_test(Py3status)
