@@ -1,0 +1,22 @@
+.TH "py3-cmd" "1" "2019" "py3status" "py3status"
+.SH NAME
+py3status - The agile, python-powered, i3status wrapper
+.SH DESCRIPTION
+py3-cmd is a sample implementation for a client using unix socket IPC interface to py3status.
+.SH COMMANDS AVAILABLE
+.SS click
+Send a click event. See `py3-cmd click` for more information.
+.SS refresh
+Send a refresh command. See `py3-cmd refresh` for more information.
+.SH CALLING COMMANDS FROM I3
+\fBpy3\-cmd\fP can be used in your i3 configuration file too, e.g.:
+.ft C
+
+    # i3 configuration
+    bindsym XF86AudioRaiseVolume  exec py3\-cmd click --button 4 volume_status\n
+    bindsym XF86AudioLowerVolume  exec py3\-cmd click --button 5 volume_status
+    bindsym XF86AudioMute         exec py3\-cmd click --button 1 volume_status
+.SH SEE ALSO
+py3status(1)
+.SH AUTHOR
+Ultrabug and contributers

@@ -1,0 +1,34 @@
+.TH "py3status" "1" "2019" "py3status" "py3status"
+.SH NAME
+py3status - The agile, python-powered, i3status wrapper
+.SH DESCRIPTION
+py3status is an extensible i3status replacement/wrapper written in Python.
+.SH OPTIONS
+.SS -h, --help
+show this help message and exit
+.SS -b, --dbus-notify
+send notifications via dbus instead of i3-nagbar
+.SS -c, --config FILE
+load config (e.g., /home/user/.config/py3status/config.conf)
+.SS -d, --debug
+enable debug logging in syslog and --log-file
+.SS -g, --gevent
+enable gevent monkey patching
+.SS -i, --include PATH
+append additional user-defined module paths
+.SS -l, --log-file FILE
+enable logging to FILE
+.SS -s, --standalone
+run py3status without i3status
+.SS -t, --timeout INT
+default module cache timeout in seconds (default: 60)
+.SS -m, --disable-click-events
+disable all click events
+.SS -u, --i3status PATH
+specify i3status path (e.g., /usr/bin/i3status)
+.SS -v, --version
+show py3status version and exit
+.SH SEE ALSO
+py3-cmd(1)
+.SH AUTHOR
+Ultrabug and contributers

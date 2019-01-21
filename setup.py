@@ -37,6 +37,7 @@ setup(
     long_description_content_type="text/x-rst",
     extras_require={"all": req_all, "gevent": req_gevent, "udev": req_udev},
     url="https://github.com/ultrabug/py3status",
+    data_files=[("share/man/man1", ["doc/py3status.1", "doc/py3-cmd.1"])],
     download_url="https://github.com/ultrabug/py3status/tags",
     license="BSD",
     platforms="any",
