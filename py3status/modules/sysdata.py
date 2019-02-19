@@ -111,11 +111,11 @@ class Py3status:
     """
 
     # available configuration parameters
-    cache_timeout = 10
+    cache_timeout = 1
     cpu_freq_unit = "GHz"
     cpus = ["cpu?*"]
     format = (
-        "[\?color=cpu_used_percent CPU: {cpu_used_percent}%], "
+        "[\?color=cpu_used_percent_change_ CPU: {cpu_used_percent}%], "
         "[\?color=mem_used_percent Mem: {mem_used}/{mem_total} "
         "{mem_total_unit} ({mem_used_percent}%)]"
     )
@@ -124,7 +124,11 @@ class Py3status:
     mem_unit = "GiB"
     swap_unit = "GiB"
     temp_unit = u"°C"
-    thresholds = [(0, "good"), (40, "degraded"), (75, "bad")]
+    thresholds = {
+        "cpu_used_percent": [(0, "good"), (40, "degraded"), (75, "bad")],
+        "mem_used_percent": [(0, "good"), (40, "degraded"), (75, "bad")],
+        "cpu_used_percent_change_": [(-0.001, "bad"), (0, "degraded"), (0.001, "good")],
+    }
     zone = None
 
     class Meta:
@@ -254,6 +258,27 @@ class Py3status:
                 "max_cpu_mem": "max_used_percent",
             },
         }
+
+        # sysdata is a fast example, but realistically, this would be used
+        # more in modules that depends on intervals such as bitcoin_price,
+        # bitcoin_market, rate_exchange, etc. we might not have much use for
+        # this helper. the main reason i made this was because cyrinux wanted
+        # something like this in his speedtest module, but it was kinda not
+        # ideal (duplicate 20+ placeholders w/ different suffix and with custom
+        # thresholds comparing current and last speedtests). it was also
+        # hardcoded to speedtest module only. this is a rough idea/demo to
+        # see how this would work and how we would apply this to other modules.
+
+        # customizable suffix keys (+abs)
+        self.scd_keys = ("_sign", "_change", "_diff", "_change_", "_diff_")
+        scd_placeholders = set(
+            self.py3.get_placeholders_list(self.format)
+            + self.py3.get_color_names_list(self.format)
+        )
+        scd_placeholders = [x for x in scd_placeholders if x.endswith(self.scd_keys)]
+        self.scd_placeholders = [
+            x.rstrip("_").rsplit("_", 1)[0] for x in scd_placeholders
+        ]
 
         if self.init["cpu_freq"]:
             name = sorted(self.init["cpu_freq"])[0]
@@ -473,6 +498,14 @@ class Py3status:
         sys["max_used_percent"] = max(
             [perc for name, perc in sys.items() if "used_percent" in name]
         )
+
+        for x in self.scd_placeholders:
+            try:
+                value = float(sys[x])
+            except (KeyError, TypeError, ValueError):
+                continue
+            keys = [x + y for y in self.scd_keys]
+            sys.update(dict(zip(keys, self.py3.format_diffs(x, value))))
 
         for x in self.thresholds_init["format"]:
             if x in sys:

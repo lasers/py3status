@@ -111,6 +111,7 @@ class Py3:
         self._english_env["LC_ALL"] = "C"
         self._english_env["LANGUAGE"] = "C"
         self._format_color_names = {}
+        self._format_diffs_cache = {}
         self._format_placeholders = {}
         self._format_placeholders_cache = {}
         self._is_python_2 = sys.version_info < (3, 0)
@@ -322,6 +323,50 @@ class Py3:
             else:
                 items.append((str(k), v))
         return dict(items)
+
+    def format_diffs(self, key, value, name=None):
+        """
+        Format differences between intervals.
+        * {xxx_sign}   sign change between intervals, eg '', +, -
+        * {xxx_change} percent change between intervals, eg 0.123456
+        * {xxx_diff}   actual difference between intervals, eg 33.56
+
+        :param key: current key name
+        :param value: compare current value with the previous value
+        :param name: cache key name
+        """
+        self._format_diffs_cache.setdefault(name, {})
+        last_value = self._format_diffs_cache[name].get(key)
+        self._format_diffs_cache[name][key] = value
+
+        sign, change, diff = ("", 0, 0)
+
+        try:
+            diff = value - last_value
+            if diff < 0:
+                sign = "-"
+                change = ((value - last_value) / value) * 100
+            elif diff > 0:
+                sign = "+"
+                change = ((value - last_value) / last_value) * 100
+            abs_change = "{:g}".format(abs(change))
+            abs_diff = "{:g}".format(abs(diff))
+        except (TypeError, ZeroDivisionError):
+            abs_change, abs_diff = ("0", "0")
+
+        # the part above is unremarkable.
+
+        # the part below is silly because i'm abs-ing the value to support
+        # "-$100" too, not "$-100" via `{sign}${abs_value}` where `{sign}`
+        # can be '', '+', or '-'. if we can do sort of {value:abs:.2f},
+        # then we can reduce variables from five to three (sign, change, diff)
+        # because we wouldn't print negative values, i.e., "-$-100".
+
+        # this is also the reason why thresholds have trailing underscore.
+        # one with abs and one without. maybe f-string can help out here.
+
+        # return sign, change, diff
+        return sign, abs_change, abs_diff, change, diff
 
     def format_units(self, value, unit="B", optimal=5, auto=True, si=False):
         """
