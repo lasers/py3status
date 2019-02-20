@@ -53,6 +53,7 @@ class Module:
         self.module_name = module.split(" ")[0]
         self.new_update = False
         self.nagged = False
+        self.on_refresh = {"button": [2]}
         self.prevent_refresh = False
         self.sleeping = False
         self.terminated = False
@@ -779,6 +780,31 @@ class Module:
             if hasattr(param, "none_setting"):
                 param = True
             self.allow_urgent = param
+
+            # on_refresh
+            on_refresh = fn(self.module_full_name, "on_refresh")
+            if not hasattr(on_refresh, "none_setting"):
+                if not isinstance(on_refresh, dict):
+                    err = "Invalid `on_refresh` attribute, should be "
+                    err += "a dict. Got `{}`.".format(on_refresh)
+                    raise TypeError(err)
+                button = on_refresh.get("button")
+                if button:
+                    if isinstance(button, int):
+                        on_refresh["button"] = [button]
+                    elif not isinstance(button, list):
+                        err = "Invalid `on_refresh['button']` attribute, "
+                        err += "should be an int. Got `{}`.".format(button)
+                        raise TypeError(err)
+                modifiers = on_refresh.get("modifiers")
+                if modifiers:
+                    if isinstance(modifiers, basestring):
+                        on_refresh["modifiers"] = modifiers.split("+")
+                    elif not isinstance(modifiers, list):
+                        err = "Invalid `on_refresh['modifiers']` attribute, "
+                        err += "should be a list. Got `{}`.".format(modifiers)
+                        raise TypeError(err)
+                self.on_refresh = on_refresh
 
             # urgent background
             urgent_background = fn(self.module_full_name, "urgent_background")

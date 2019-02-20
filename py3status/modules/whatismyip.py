@@ -3,7 +3,6 @@
 Display public IP address and online status.
 
 Configuration parameters:
-    button_refresh: mouse button to refresh this module (default 2)
     button_toggle: mouse button to toggle between states (default 1)
     cache_timeout: how often we refresh this module in seconds (default 60)
     expected: define expected values for format placeholders,
@@ -59,7 +58,6 @@ class Py3status:
     """
 
     # available configuration parameters
-    button_refresh = 2
     button_toggle = 1
     cache_timeout = 60
     expected = None
@@ -75,6 +73,7 @@ class Py3status:
             "remove": [
                 {"param": "url", "msg": "obsolete parameter, use `url_geo` instead"},
                 {"param": "negative_cache_timeout", "msg": "obsolete parameter"},
+                {"param": "button_refresh", "msg": "obsolete"},
             ],
             "rename": [
                 {
@@ -164,13 +163,14 @@ class Py3status:
         Toggle between display modes 'ip' and 'status'
         """
         button = event["button"]
+        refresh = event["refresh"]
         if button == self.button_toggle:
             self.toggled = True
             if self.mode == "ip":
                 self.mode = "status"
             else:
                 self.mode = "ip"
-        elif button == self.button_refresh:
+        elif refresh:
             self.idle_time = 0
         else:
             self.py3.prevent_refresh()

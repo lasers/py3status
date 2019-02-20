@@ -174,7 +174,6 @@ class Py3status:
             raise Exception(STRING_NOT_INSTALLED)
 
         # init
-        self.button_refresh = 2
         self.placeholders = self.py3.get_placeholders_list(self.format)
         self.speedtest_data = self.py3.storage_get("speedtest_data") or {}
         self.thread = None
@@ -238,11 +237,12 @@ class Py3status:
 
     def on_click(self, event):
         button = event["button"]
+        refresh = event["refresh"]
         if button == self.button_share:
             share = self.speedtest_data.get("share")
             if share:
                 self.py3.command_run("xdg-open {}".format(share))
-        if button == self.button_refresh:
+        if refresh:
             if self.thread and not self.thread.isAlive():
                 self.thread = None
             if self.thread is None:

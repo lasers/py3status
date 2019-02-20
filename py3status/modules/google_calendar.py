@@ -15,8 +15,6 @@ Configuration parameters:
         (default [])
     button_open: Opens the event URL in the default web browser.
         (default 3)
-    button_refresh: Refreshes the module and updates the list of events.
-        (default 2)
     button_toggle: Toggles a boolean to hide/show the data for each event.
         (default 1)
     cache_timeout: How often the module is refreshed in seconds
@@ -161,7 +159,6 @@ class Py3status:
     auth_token = "~/.config/py3status/google_calendar.auth_token"
     blacklist_events = []
     button_open = 3
-    button_refresh = 2
     button_toggle = 1
     cache_timeout = 60
     client_secret = "~/.config/py3status/google_calendar.client_secret"
@@ -187,6 +184,9 @@ class Py3status:
     time_to_max = 180
     warn_threshold = 0
     warn_timeout = 300
+
+    class Meta:
+        deprecated = {"remove": [{"param": "button_refresh", "msg": "obsolete"}]}
 
     def post_config_hook(self):
         self.button_states = [False] * self.num_events
@@ -485,7 +485,7 @@ class Py3status:
     def on_click(self, event):
         if self.is_authorized and self.events is not None:
             """
-            If button_refresh is clicked, we allow the events to be updated
+            If refresh is clicked, we allow the events to be updated
             if the last event update occured at least 1 second ago. This
             prevents a bug that can crash py3status since refreshing the
             module too fast results in incomplete event information being
@@ -496,10 +496,11 @@ class Py3status:
             self.no_update = True
             button = event["button"]
             button_index = event["index"]
+            refresh = event["refresh"]
 
             if button_index == "sep":
                 self.py3.prevent_refresh()
-            elif button == self.button_refresh:
+            elif refresh:
                 now = datetime.datetime.now()
                 diff = (now - self.last_update).seconds
                 if diff > 1:

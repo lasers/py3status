@@ -891,3 +891,51 @@ module configuration. To find out if your module supports that, look for
     exchange_rate {
         request_timeout = 10
     }
+
+Refresh bindings
+----------------
+
+Refresh bindings for modules can be specified in the py3status configuration
+or individually in the module configuration. We will use ``{'button': 2}``.
+
+.. code-block:: shell
+
+    # button numbers
+    1 = left click
+    2 = middle click
+    3 = right click
+    4 = scroll up
+    5 = scroll down
+
+    # modifiers
+    Mod1-Mod5, Shift, Control
+
+.. code-block:: py3status
+    :caption: Example
+
+    # refresh on button 2 for all modules (default)
+    py3status {
+        on_refresh = {
+            "button": 2,
+        }
+    }
+
+    # no refresh for this module
+    github {
+        on_refresh = {}
+    }
+
+    # refresh on Mod4 and any button for this module
+    mail {
+        on_refresh = {
+            "modifiers": ["Mod4"],
+        }
+    }
+
+    # refresh on Mod1+Shift and button 1 for this module
+    weather_owm {
+        on_refresh = {
+            "button": 1,
+            "modifiers": ["Mod1", "Shift"],
+        }
+    }

@@ -83,7 +83,6 @@ class Py3status:
         }
 
     def post_config_hook(self):
-        self.button_refresh = 2
         self.color_open = self.py3.COLOR_OPEN or self.py3.COLOR_GOOD
         self.color_closed = self.py3.COLOR_CLOSED or self.py3.COLOR_BAD
 
@@ -122,10 +121,10 @@ class Py3status:
 
     def on_click(self, event):
         button = event["button"]
+        refresh = event["refresh"]
         if self._url and self.button_url == button:
             self.py3.command_run("xdg-open {}".format(self._url))
-            self.py3.prevent_refresh()
-        elif button != self.button_refresh:
+        if not refresh:
             self.py3.prevent_refresh()
 
 

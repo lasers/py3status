@@ -8,7 +8,6 @@ to make one. Make a name, eg py3status, and enable api in scopes. Save.
 Configuration parameters:
     auth_token: specify a personal access token to use (default None)
     button_open: mouse button to open project url (default 1)
-    button_refresh: mouse button to refresh this module (default 2)
     cache_timeout: refresh interval for this module (default 900)
     format: display format for this module
         *(default '[{name} ][[{open_issues_count}][\?soft /]'
@@ -72,13 +71,15 @@ class Py3status:
     # available configuration parameters
     auth_token = None
     button_open = 1
-    button_refresh = 2
     cache_timeout = 900
     format = (
         "[{name} ][[{open_issues_count}][\?soft /]" "[{open_merge_requests_count}]]"
     )
     project = "gitlab-org/gitlab-ce"
     thresholds = []
+
+    class Meta:
+        deprecated = {"remove": [{"param": "button_refresh", "msg": "obsolete"}]}
 
     def post_config_hook(self):
         if not self.auth_token:
@@ -154,9 +155,10 @@ class Py3status:
 
     def on_click(self, event):
         button = event["button"]
+        refresh = event["refresh"]
         if button == self.button_open:
             self.py3.command_run("xdg-open %s" % self.project)
-        if button != self.button_refresh:
+        if not refresh:
             self.py3.prevent_refresh()
 
 

@@ -245,13 +245,30 @@ class Events(Thread):
         # we do not do this for containers
         # modules that have failed do not execute their config on_click
         if module.allow_config_clicks:
-            button = event.get("button", 0)
-            on_click = self.on_click.get(module_name, {}).get(str(button))
+            # event
+            event_button = event.get("button")
+            event_modifiers = sorted(event.get("modifiers", []))
+            # refresh
+            refresh_button = module.on_refresh.get("button", [])
+            refresh_modifiers = sorted(module.on_refresh.get("modifiers", []))
+            # boolean
+            boolean_button = event_button in refresh_button
+            boolean_modifiers = event_modifiers == refresh_modifiers
+
+            if refresh_modifiers and refresh_button:
+                refresh = event["refresh"] = boolean_modifiers and boolean_button
+            elif refresh_modifiers:
+                refresh = event["refresh"] = boolean_modifiers
+            else:
+                refresh = event["refresh"] = boolean_button
+
+            on_click = self.on_click.get(module_name, {}).get(str(event_button))
             if on_click:
+                # on_click and refresh
                 task = EventClickTask(module_name, event, self, on_click)
                 self.py3_wrapper.timeout_queue_add(task)
-            # otherwise setup default action on button 2 press
-            elif button == 2:
+            elif refresh:
+                # refresh only
                 default_event = True
 
         # do the work
@@ -264,12 +281,13 @@ class Events(Thread):
         Wait for an i3bar JSON event, then find the right module to dispatch
         the message to based on the 'name' and 'instance' of the event.
 
-        In case the module does NOT support click_events, the default
-        implementation is to clear the module's cache
-        when the MIDDLE button (2) is pressed on it.
+        In case the module does NOT support click_events, the default behavior
+        is to clear the module's cache if the event's button and/or modifiers
+        and on_refresh's button and/or modifiers are equal.
 
         Example event:
-        {'y': 13, 'x': 1737, 'button': 1, 'name': 'empty', 'instance': 'first'}
+        {'y': 13, 'x': 1737, 'button': 1, 'name': 'empty',
+            'instance': 'first', 'modifiers': ["Shift", "Mod4"],}
         """
         try:
             while self.py3_wrapper.running:

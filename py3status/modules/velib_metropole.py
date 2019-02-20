@@ -145,7 +145,6 @@ class Py3status:
             "zoomLevel": 15,
         }
         self.active_index = 0
-        self.button_refresh = 2
         self.cache_station_keys = {}
         self.first_request = True
         self.idle_time = 0
@@ -269,6 +268,7 @@ class Py3status:
 
     def on_click(self, event):
         button = event["button"]
+        refresh = event["refresh"]
         if button in [self.button_next, self.button_previous]:
             if self.station_data:
                 self.scrolling = True
@@ -279,7 +279,7 @@ class Py3status:
                 self.active_index %= self.count_stations
             else:
                 self.py3.prevent_refresh()
-        elif button == self.button_refresh:
+        elif refresh:
             self.idle_time = 0
         else:
             self.py3.prevent_refresh()
