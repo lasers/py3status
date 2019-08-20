@@ -447,8 +447,18 @@ class Module:
         # set markup
         if "markup" in self.py3status_module_options:
             markup = self.py3status_module_options["markup"]
+            line = ""
             for item in composite:
                 item["markup"] = markup
+                color = item.get("color")
+                if color:
+                    span = u"<span fgcolor='{}'>{}</span>"
+                    line += span.format(color, item["full_text"])
+                else:
+                    line += item["full_text"]
+
+            composite = [{"full_text": line, "markup": markup}]
+            response["composite"] = composite
 
         # set universal options on last component
         composite[-1].update(self.i3bar_module_options)
