@@ -505,10 +505,12 @@ class Py3:
         """
         return self._py3_wrapper.config["wm"]["msg"]
 
-    def get_output(self, module_name):
+    def get_output(self, module_name=None):
         """
         Return the output of the named module.  This will be a list.
         """
+        if not module_name:
+            return self._output_modules
         output = []
         module_info = self._get_module_info(module_name)
         if module_info:
