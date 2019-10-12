@@ -3,11 +3,14 @@
 Display spaces.
 
 Configuration parameters:
-    format: display format for this module (default '{output}')
     cache_timeout: refresh interval for this module (default 1)
-    width: specify a number of columns for the monitor (default 270)
+    format: display format for this module (default '{output}')
+    width: specify a number of columns for the monitor (default 220)
 
-@author spaceguy
+Format placeholders:
+    {output} output
+
+@author lasers
 
 SAMPLE OUTPUT
 {'full_text': 'spacer'}
@@ -19,35 +22,24 @@ class Py3status:
     """
 
     # available configuration parameters
-    format = "{output}"
     cache_timeout = 1
-    width = 270
+    format = "{output}"
+    width = 220
 
     def spacer(self):
-        output = self.py3.get_output()
-        self.py3.log(output)
         width = 0
-        num = 0
 
-        for name, data in output.items():
+        for name, data in self.py3._output_modules.items():
             if any(x in name for x in ["group", "frame", "scroll", "spacer"]):
                 continue
-            self.py3.log(name)
             module = data["module"].get_latest()
+            width += sum([len(x["full_text"]) for x in module])
 
-            for x in module:
-                # self.py3.log(x)
-                width += len(x["full_text"])
-
-            num += 1
-
-        free_space = self.width - width
-        self.py3.log("WIDTH:{}, FREE_SPACE:{}".format(width, free_space))
-        space_data = {"output": " " * free_space}
+        output = " " * (self.width - width)
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "full_text": self.py3.safe_format(self.format, space_data),
+            "full_text": self.py3.safe_format(self.format, {"output": output}),
         }
 
 
