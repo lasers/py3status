@@ -3,12 +3,14 @@
 Display spaces.
 
 Configuration parameters:
+    button_down: specify button number to decrease width (default 5)
+    button_up: specify button number to increase width (default 4)
     cache_timeout: refresh interval for this module (default 1)
-    format: display format for this module (default '{output}')
-    width: specify a number of columns for the monitor (default 220)
+    format: display format for this module (default '{output}{width}')
 
 Format placeholders:
     {output} output
+    {width} width number
 
 @author lasers
 
@@ -22,9 +24,15 @@ class Py3status:
     """
 
     # available configuration parameters
+    button_down = 5
+    button_up = 4
     cache_timeout = 1
-    format = "{output}"
-    width = 220
+    format = "{output}{width}"
+
+    def post_config_hook(self):
+        self.print_width = False
+        self.show_width = self.py3.format_contains(self.format, "width")
+        self.width = self.py3.storage_get("width") or 220
 
     def spacer(self):
         width = 0
@@ -37,10 +45,31 @@ class Py3status:
 
         output = " " * (self.width - width)
 
+        if self.print_width and self.show_width:
+            self.print_width = False
+            output = output[len(str(self.width)) :]
+            width = self.width
+        else:
+            width = ""
+
+        space_data = {"output": output, "width": width}
+
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "full_text": self.py3.safe_format(self.format, {"output": output}),
+            "full_text": self.py3.safe_format(self.format, space_data),
         }
+
+    def kill(self):
+        self.py3.storage_set("width", self.width)
+
+    def on_click(self, event):
+        button = event["button"]
+        if button == self.button_up:
+            self.width += 1
+            self.print_width = True
+        elif button == self.button_down:
+            self.width -= 1
+            self.print_width = True
 
 
 if __name__ == "__main__":
