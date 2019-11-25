@@ -244,6 +244,14 @@ RETIRED_MODULES = {
         "new": ["weather_owm"],
         "msg": "Module {old} is no longer available due to retired Yahoo Weather APIs and new Oath requirements. You can try a different module {new}.",
     },
+    "keyboard_layout": {
+        "new": ["xkb_input"],
+        "msg": "Module {old} has been replaced with a module {new} to support sway too.",
+    },
+    "xkb_layouts": {
+        "new": ["xkb_input"],
+        "msg": "Module {old} has been replaced with a module {new} to support sway too.",
+    },
 }
 
 MARKUP_LANGUAGES = ["pango", "none"]
