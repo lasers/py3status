@@ -105,6 +105,7 @@ SAMPLE OUTPUT
 """
 
 from fnmatch import fnmatch
+from json import loads
 from os import getloadavg
 
 import re
@@ -393,9 +394,9 @@ class Py3status:
                 pass
         if not sensors:
             sensors = self.py3.command_output(command)
-        m = re.search(r"(Core 0|CPU Temp).+\+(.+).+\(.+", sensors)
+        m = re.search(r"(?:Package id 0|Core 0|Tdie):\s+\+(\d+.\d+)", sensors)
         if m:
-            cpu_temp = float(m.groups()[1].strip()[:-2])
+            cpu_temp = float(m.groups()[0].strip())
         else:
             cpu_temp = "?"
 
@@ -456,6 +457,15 @@ class Py3status:
                 sys["format_cpu"] = format_cpu
 
         if self.init["cpu_temp"]:
+            if self.zone is None:
+                sensors_to_find = ["coretemp-isa-0000", "k10temp-pci-00c3"]
+                sensors_dict = loads(self.py3.command_output(["sensors", "-j"]))
+
+                for sensor in sensors_dict:
+                    if sensor in sensors_to_find:
+                        self.zone = sensor
+                        break
+
             sys["cpu_temp"] = self._get_cputemp(self.zone, self.temp_unit)
 
         if self.init["load"]:
