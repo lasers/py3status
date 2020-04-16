@@ -111,7 +111,12 @@ class Py3status:
 
     def _get_my_ip_info(self):
         try:
-            info = self.py3.request(self.url_geo).json()
+            _data = self.py3.request(self.url_geo)
+            info = _data.json()
+            date = self.py3.command_output("date").strip()
+            with open("/tmp/py3status-whatismyip.log", "w") as f:
+                dash = "=" * 10
+                f.write(" ".join([dash, date, dash]) + "\n" + str(vars(_data)) + "\n\n")
             for old, new in self.substitutions.items():
                 info[old] = info.get(new)
             return info
