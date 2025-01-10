@@ -53,6 +53,7 @@ Format player placeholders:
 Requires:
     playerctl: mpris media player controller and lib for spotify, vlc, audacious,
         bmp, xmms2, and others.
+    python-gobject: Python Bindings for GLib/GObject/GIO/GTK+
 
 @author jdholtz
 
@@ -71,9 +72,9 @@ from fnmatch import fnmatch
 from threading import Thread
 
 import gi
-from gi.repository import GLib, Playerctl
 
 gi.require_version("Playerctl", "2.0")
+from gi.repository import GLib, Playerctl  # noqa e402
 
 
 class Py3status:
@@ -273,6 +274,9 @@ class Py3status:
         players = []
         cached_until = self.py3.CACHE_FOREVER
         for player in tracked_players:
+            if not player.props.can_play:
+                continue
+
             player_data = self._get_player_data(player)
 
             # Check if the player should cause the module to continuously update
