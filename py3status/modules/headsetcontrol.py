@@ -1,31 +1,43 @@
 r"""
-Display headset connection state.
+Display device readouts currently exhibiting in supported gaming headsets.
 
-This module displays the connection state and battery for supported headsets.
+HeadSetControl is a cross-platform tool to control USB gaming headsets. It can manage
+sidetone, battery status, LED lights, equalizers, and more. Supported gaming headsets:
+Logitech G930, G533, G633, G933 SteelSeries Arctis 7/PRO 2019 and Corsair VOID (Pro).
 
 Configuration parameters:
-    cache_timeout: How often we refresh this module in seconds (default 10)
-    format: Display format (default 'Headsetcontrol: {devices}')
-    format_battery: Display format for the battery level value (default '({battery_level}%)')
-    format_device: Display format for devices (default '{product} {battery}')
-    format_device_separator: Seperator if more than one device (default ' ')
+    cache_timeout: refresh interval for this module (default 10)
+    format: display format for this module (default '{format_device}')
+    format_device: display format for devices
+        (default '{product} [\?color=battery_level {battery_level}%]')
+    format_device_separator: show separator if more than one (default ' ')
+    thresholds: specify color thresholds to use
+        (default [(0, 'darkgray'), (25, 'bad'), (50, 'degraded'), (75, 'good')])
 
 Format placeholders:
-    {devices}: The list of devices attached.
-    {vendor}: The vendor of a device as reported by headsetcontrol.
-    {product}: The product name of a device as reported by headsetcontrol.
-    {battery}: The battery level of a device, formated.
-    {battery_level}: The unformated battary level in percent as reported by headsetcontrol.
+    {name}           eg, HeadsetControl
+    {version}        eg, 3.1.0-84-gc8bbeb3
+    {api_version}    eg, 1.4
+    {hidapi_version} eg, 0.15.0
+    {device_count}   eg, 1
+
+format_device placeholders:
+    {status}     eg, success
+    {device}     eg, Logitech G PRO X 2 LIGHTSPEED
+    {vendor}     eg, Logitech
+    {product}    eg, PRO X 2 LIGHTSPEED
+    {id_vendor}  eg, 0x046d
+    {id_product} eg, 0x0af7
 
 Requires:
-    headsetcontrol: A cross-platform tool to control USB gaming headsets.
+    headsetcontrol: A cross-platform tool to control USB gaming headsets
 
-Example:
+Examples:
 ```
+# hide headsets based on battery levels (ie disconnected)
 headsetcontrol {
-    format = "{devices}"
-    format_device = "{vendor} {product} {battery}"
-    format_battery = "({battery_level}%)"
+    format_device = "[\?if=battery_level>0 [\?color=darkgray {product}] "
+    format_device += "[\?color=battery_level {battery_level}%]]"
 }
 ```
 
@@ -33,10 +45,15 @@ headsetcontrol {
 @license BSD
 
 SAMPLE OUTPUT
-{'full_text': 'Headsetcontrol: Test Device (42%)'}
+[
+    {'full_text': 'PRO X 2 LIGHTSPEED '},
+    {'full_text': '75%', 'color': '#00f000'},
+]
 """
 
-import json
+from json import loads
+
+STRING_NOT_INSTALLED = "not installed"
 
 
 class Py3status:
@@ -44,39 +61,52 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "Headsetcontrol: {devices}"
-    format_battery = "({battery_level}%)"
-    format_device = "{product} {battery}"
+    format = "{format_device}"
+    format_device = "{product} [\?color=battery_level {battery_level}%]"
     format_device_separator = " "
+    thresholds = [(0, 'darkgray'), (25, 'bad'), (50, 'degraded'), (75, 'good')]
 
-    def _get_headset_data(self):
+    def post_config_hook(self):
+        self.headsetcontrol_command = ["headsetcontrol", "-o", "json"]
+        if not self.py3.check_commands(self.headsetcontrol_command):
+            raise Exception(STRING_NOT_INSTALLED)
+
+        self.thresholds_init = {}
+        for name in ["format", "format_device"]:
+            self.thresholds_init[name] = self.py3.get_color_names_list(getattr(self, name))
+
+    def _get_headsetcontrol_data(self):
         try:
-            headsetcontrol_raw_json = self.py3.command_output("headsetcontrol -o json")
-            return json.loads(headsetcontrol_raw_json)
-        except (ValueError, UnicodeDecodeError):
-            self.py3.error("Headsetcontrol returned no valid JSON.")
-        except self.py3.CommandError:
-            return {"devices": []}
+            data = self.py3.command_output(self.headsetcontrol_command)
+        except self.py3.CommandError as ce:
+            data = ce.output
+        return loads(data)
 
     def headsetcontrol(self):
-        headset_data = self._get_headset_data()
-        devices = []
-        for device in headset_data["devices"]:
-            headset_data_flat = {
-                "vendor": self.py3.safe_format(device["vendor"]),
-                "product": self.py3.safe_format(device["product"]),
-                "battery": "",
-            }
-            if "CAP_BATTERY_STATUS" in device["capabilities"]:
-                headset_data_flat["battery"] = self.py3.safe_format(
-                    self.format_battery, {"battery_level": device["battery"]["level"]}
-                )
-            devices.append(self.py3.safe_format(self.format_device, headset_data_flat))
+        headsetcontrol_data = self._get_headsetcontrol_data()
+        devices = headsetcontrol_data.pop("devices", [])
+        new_devices = []
+
+        for device in devices:
+            device = self.py3.flatten_dict(device, "_")
+
+            for x in self.thresholds_init["format_device"]:
+                if x in device:
+                    self.py3.threshold_get_color(device[x], x)
+
+            new_devices.append(self.py3.safe_format(self.format_device, device))
+
         format_device_separator = self.py3.safe_format(self.format_device_separator)
-        devices = self.py3.composite_join(format_device_separator, devices)
+        format_device = self.py3.composite_join(format_device_separator, new_devices)
+        headsetcontrol_data.update({"format_device": format_device})
+
+        for x in self.thresholds_init["format"]:
+            if x in headset_data:
+                self.py3.threshold_get_color(headsetcontrol_data[x], x)
+
         return {
-            "full_text": self.py3.safe_format(self.format, param_dict={"devices": devices}),
             "cached_until": self.py3.time_in(self.cache_timeout),
+            "full_text": self.py3.safe_format(self.format, headsetcontrol_data),
         }
 
 
