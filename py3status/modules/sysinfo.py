@@ -31,6 +31,19 @@ Format placeholders:
     {python_version} Python version, e.g. '3.14.6'
     {wm_name} window manager detected by py3status, e.g. 'i3' or 'sway'
 
+Examples:
+````
+# display system information
+sysinfo uname {
+    format = '{system} {release}'
+}
+
+# display logged-in username
+sysinfo whoami {
+    format = "{username}"
+}
+```
+
 @author ultrabug, lasers
 
 SAMPLE OUTPUT
