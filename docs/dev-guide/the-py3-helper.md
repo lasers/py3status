@@ -382,6 +382,15 @@ be added automatically following the convention:
 
 returns: HttpResponse
 
+### safe_join(separator, items)
+
+Join items using a format string, Composite, or native separators.
+
+String separators are processed by safe_format(). Boolean separators
+control whether native separators are used between visible items.
+
+A Composite object will be returned.
+
 ### safe_format(format_string, param_dict=None, force_composite=False, attr_getter=None, max_width=None)
 
 Parser for advanced formatting.

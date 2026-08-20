@@ -1,5 +1,7 @@
 from pprint import pformat
 
+from py3status.composite import Composite
+from py3status.formatter import Formatter
 from py3status.py3 import Py3
 
 
@@ -40,6 +42,50 @@ def test_config_color_resolution(monkeypatch):
     assert not py3.is_color(disabled_color)
     assert Py3(MockModule({})).COLOR_HIDDEN == "hidden"
     assert Py3(MockModule({})).COLOR_NOTACOLOR is None
+
+def test_safe_join():
+    safe_py3 = Py3()
+    safe_py3._formatter = Formatter()
+    safe_py3._py3status_module = object()
+    items = ["one", "two"]
+
+    assert list(safe_py3.safe_join(r"\?color=#FF0000&show  \| ", items)) == [
+        {"full_text": "one"},
+        {"full_text": " | ", "color": "#FF0000"},
+        {"full_text": "two"},
+    ]
+
+    separator = Composite({"full_text": " / ", "color": "#00FF00"})
+    assert list(safe_py3.safe_join(separator, items)) == [
+        {"full_text": "one"},
+        {"full_text": " / ", "color": "#00FF00"},
+        {"full_text": "two"},
+    ]
+
+    assert list(safe_py3.safe_join(True, items)) == [
+        {"full_text": "one", "separator": True},
+        {"full_text": "two"},
+    ]
+    assert list(safe_py3.safe_join(False, items)) == [
+        {"full_text": "one", "separator": False},
+        {"full_text": "two"},
+    ]
+
+
+def test_safe_join_native_separator_nested():
+    safe_py3 = Py3()
+    safe_py3._formatter = Formatter()
+    safe_py3._py3status_module = object()
+    items = safe_py3.safe_join(True, ["one", "two"])
+
+    output = safe_py3.safe_format("X {items} Y", {"items": items}, force_composite=True)
+
+    assert list(output) == [
+        {"full_text": "X "},
+        {"full_text": "one", "separator": True},
+        {"full_text": "two"},
+        {"full_text": " Y"},
+    ]
 
 
 def test_format_units():
