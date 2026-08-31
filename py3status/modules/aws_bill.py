@@ -1,8 +1,9 @@
 """
 Display bill for Amazon Web Services.
 
-**WARNING: This module generate some costs on the AWS bill.
-Take care about the cache_timeout to limit these fees!**
+Warnings:
+    This module generate some costs on the AWS bill.
+    Take care about the cache_timeout to limit these fees!
 
 Configuration parameters:
     aws_access_key_id: Your AWS access key (default '')

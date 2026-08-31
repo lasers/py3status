@@ -12,8 +12,8 @@ No extra configuration file needed, just install & enjoy!
 
 ## About
 
-You will love py3status if you're using [i3wm](https://i3wm.org) (or
-[sway](https://swaywm.org)) and are frustrated by the i3status
+You will love py3status if you're using [i3wm](https://i3wm.org) or
+[sway](https://swaywm.org) and are frustrated by the i3status
 limitations on your i3bar such as:
 
 - you cannot hack into it easily
@@ -39,9 +39,16 @@ others, see:
 
 ### GitHub
 
-- [Issues](https://github.com/ultrabug/py3status/issues) /
-- [Pull requests](https://github.com/ultrabug/py3status/pulls)
+* [Issues](https://github.com/ultrabug/py3status/issues)
+* [Pull requests](https://github.com/ultrabug/py3status/pulls)
 
 ### Live IRC Chat
 
-Join us on \#py3status at [oftc.net](https://www.oftc.net)
+Join us in `#py3status` on [OFTC](https://www.oftc.net)
+
+* Open in your browser https://webchat.oftc.net/?channels=py3status
+* Join with an IRC client
+```
+/connect irc.oftc.net
+/join #py3status
+```

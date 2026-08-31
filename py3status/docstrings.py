@@ -1,6 +1,7 @@
 import ast
 import difflib
 import re
+import warnings
 from pathlib import Path
 
 from py3status.helpers import print_stderr
@@ -61,7 +62,12 @@ def core_module_docstrings(include_core=True, include_user=False, config=None, f
         path, module_type = paths[name]
         with path.open() as f:
             try:
-                module = ast.parse(f.read())
+                # a module's `\?` format syntax in a non-raw string can
+                # trigger a harmless invalid-escape SyntaxWarning here -
+                # this only scans docstrings, so suppress it.
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", SyntaxWarning)
+                    module = ast.parse(f.read())
             except SyntaxError:
                 # there is a syntax error so ignore module
                 continue
@@ -109,18 +115,31 @@ def create_readme(data):
 re_listing = re.compile(r"^\w.*:$")
 
 # match in README.md
-re_to_param = re.compile(r"^  - `([a-z]\S+)`($|[ \t])")
-re_to_status = re.compile(r"^  - `({\S+})`($|[ \t])")
+# \Z (not $) for "end of string" - a $ before the end of the pattern
+# text trips "unmatchable dollar" regex linters, even though it's a
+# valid, correctly-matching zero-width assertion at this position.
+re_to_param = re.compile(r"^  - `([a-z]\S+)`(\Z|[ \t])")
+re_to_status = re.compile(r"^  - `({\S+})`(\Z|[ \t])")
 re_to_item = re.compile(r"^\s+-")
-re_to_data = re.compile(r"^\*\*(author|license|source)\*\*($|[ \t])")
+re_to_data = re.compile(r"^\*\*(author|license|source)\*\*(\Z|[ \t])")
 re_to_tag = re.compile("&lt;([^.]*)&gt;")
 re_to_defaults = re.compile(r"\*(\(default.*\))\*")
 
 # match in module docstring
-re_from_param = re.compile(r"^    ([a-z<]\S+):($|[ \t])(.*)$")
-re_from_status = re.compile(r"^\s+({\S+})($|[ \t])(.*)$")
+# name can contain spaces (eg weather_owm's "format only:", "format,
+# format_forecast:") - not just a single whitespace-free token, or a
+# multi-word sub-heading silently glues onto the previous bullet as a
+# continuation line instead of becoming its own listing entry. Lazy
+# `.*?` (not greedy `.*`, and not `[^:\n]*`) so it stops at the first
+# colon that's actually followed by a boundary (space/tab/end-of-line),
+# skipping over a colon embedded in the name itself (eg watson's
+# `https://github.com/TailorDev/Watson:` requirement) without also
+# over-matching all the way to a colon that ends the *description*
+# instead (eg "cache_timeout: refresh interval ... the site:").
+re_from_param = re.compile(r"^    ([a-z<].*?):(\Z|[ \t])(.*)$")
+re_from_status = re.compile(r"^\s+({\S+})(\Z|[ \t])(.*)$")
 re_from_item = re.compile(r"^\s+-(?=\s)")
-re_from_data = re.compile("^@(author|license|source)($|[ \t])")
+re_from_data = re.compile("^@(author|license|source)(\\Z|[ \t])")
 re_from_tag = re.compile("((`[^`]*`)|[<>&])")
 re_from_defaults = re.compile(r"(\(default.*\))\s*$")
 
