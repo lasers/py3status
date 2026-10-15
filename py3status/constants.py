@@ -282,8 +282,8 @@ RETIRED_MODULES = {
         "msg": "Module {old} has been replaced with a module {new}.",
     },
     "hddtemp": {
-        "new": ["lm_sensors"],
-        "msg": "Module {old} is no longer available due to unmaintained hddtemp. You can try a different module {new} with the drivetemp kernel driver.",
+        "new": ["drivetemp"],
+        "msg": "Module {old} has been replaced with a module {new}.",
     },
     "nvidia_temp": {
         "new": ["nvidia_smi"],
