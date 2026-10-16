@@ -1,4 +1,4 @@
-"""
+r"""
 Display if a Twitch channel is currently streaming or not.
 
 Configuration parameters:
@@ -9,9 +9,9 @@ Configuration parameters:
     client_secret: Your client secret.
         (default None)
     format: Display format when online
-        (default "{display_name} is live!")
+        (default "\?color=status {display_name} is live!")
     format_offline: Display format when offline
-        (default "{display_name} is offline.")
+        (default "\?color=status {display_name} is offline.")
     format_tag: Tag formatting
         (default "{name}")
     locales: List of locales to try for tag translations, eg. ["cs-cz", "en-uk", "en-us"]. If none is specified, auto-detect from environment, with a fallback to "en-us".
@@ -99,8 +99,8 @@ class Py3status:
     cache_timeout = 60
     client_id = None
     client_secret = None
-    format = "{display_name} is live!"
-    format_offline = "{display_name} is offline."
+    format = r"\?color=status {display_name} is live!"
+    format_offline = r"\?color=status {display_name} is offline."
     format_tag = "{name}"
     locales = []
     stream_name = None
@@ -266,7 +266,7 @@ class Py3status:
             "display_name": self.user["display_name"],
         }
         current_format = ""
-        color = None
+        self.color_status = None
 
         self._trace("fetching stream data")
         stream = self._get_twitch_data(self.url["streams"])
@@ -285,11 +285,11 @@ class Py3status:
             twitch_data["stream"] = stream
             twitch_data["is_streaming"] = True
 
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             current_format = self.format
         else:
             twitch_data["is_streaming"] = False
-            color = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
             current_format = self.format_offline
 
         twitch_data = self.py3.flatten_dict(twitch_data, delimiter="_")
@@ -303,9 +303,6 @@ class Py3status:
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(current_format, twitch_data),
         }
-
-        if color:
-            response["color"] = color
 
         return response
 
