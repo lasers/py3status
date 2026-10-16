@@ -92,15 +92,16 @@ class Py3status:
         else:
             res = ""
 
-        ret = dict(full_text=res, cached_until=self.py3.time_in(self.query_interval))
+        self.color_status = None
         if self.color:
             if self.color.startswith("#"):
-                ret["color"] = self.color
+                self.color_status = self.color
             else:
-                entry = "COLOR_" + self.color.upper()
-                if getattr(self.py3, entry):
-                    ret["color"] = getattr(self.py3, entry)
-        return ret
+                self.color_status = getattr(self.py3, "COLOR_" + self.color.upper())
+
+        # format uses str.format, so color the result here
+        full_text = self.py3.safe_format(r"\?color=status {text}", {"text": res})
+        return dict(full_text=full_text, cached_until=self.py3.time_in(self.query_interval))
 
 
 if __name__ == "__main__":
