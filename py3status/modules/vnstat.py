@@ -3,7 +3,8 @@ Display vnstat statistics.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 180)
-    format: display format for this module (default '{total}')
+    format: display format for this module
+        (default '[\?color=total {total}]')
     initial_multi: set to 1 to disable first bytes
         (default 1024)
     left_align: (default 0)
@@ -54,7 +55,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 180
-    format = "{total}"
+    format = r"[\?color=total {total}]"
     initial_multi = 1024
     left_align = 0
     multiplier_top = 1024
@@ -103,9 +104,6 @@ class Py3status:
         values = vnstat_data.splitlines()[0].split(";")[self.slice]
         stat = dict(zip(["down", "up", "total"], map(int, values)))
         response = {"cached_until": self.py3.time_in(self.cache_timeout)}
-
-        if self.coloring:
-            response["color"] = self.py3.threshold_get_color(stat["total"])
 
         for x in self.thresholds_init:
             if x in stat:
