@@ -1,10 +1,10 @@
-"""
+r"""
 Display number of ongoing tickets from RT queues.
 
 Configuration parameters:
     cache_timeout: how often we refresh this module in seconds (default 300)
     db: database to use (default '')
-    format: see placeholders below (default 'general: {General}')
+    format: see placeholders below (default '\?color=status general: {General}')
     host: database host to connect to (default '')
     password: login password (default '')
     threshold_critical: set bad color above this threshold (default 20)
@@ -45,7 +45,7 @@ class Py3status:
     # available configuration parameters
     cache_timeout = 300
     db = ""
-    format = "general: {General}"
+    format = r"\?color=status general: {General}"
     host = ""
     password = ""
     threshold_critical = 20
@@ -56,6 +56,7 @@ class Py3status:
     def rt(self):
         has_one_queue_formatted = False
         response = {"full_text": ""}
+        self.color_status = None
         tickets = {}
 
         mydb = mysql.connect(
@@ -85,9 +86,9 @@ class Py3status:
             if queue in self.format:
                 has_one_queue_formatted = True
                 if nb_tickets > self.threshold_critical:
-                    response.update({"color": self.py3.COLOR_BAD})
-                elif nb_tickets > self.threshold_warning and "color" not in response:
-                    response.update({"color": self.py3.COLOR_DEGRADED})
+                    self.color_status = self.py3.COLOR_BAD
+                elif nb_tickets > self.threshold_warning and not self.color_status:
+                    self.color_status = self.py3.COLOR_DEGRADED
         if has_one_queue_formatted:
             response["full_text"] = self.py3.safe_format(self.format, tickets)
         else:
