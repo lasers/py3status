@@ -1,4 +1,4 @@
-"""
+r"""
 Display WiFi bit rate, quality, signal and SSID using iw.
 
 Configuration parameters:
@@ -12,7 +12,8 @@ Configuration parameters:
     down_color: Output color when disconnected, possible values:
         "good", "degraded", "bad" (default "bad")
     format: Display format for this module
-        (default 'W: {bitrate} {bitrate_unit} {signal_percent}% {ssid}|W: down')
+        *(default '\?color=status W: {bitrate} {bitrate_unit} {signal_percent}% {ssid}'
+        '|\?color=status W: down')*
     signal_bad: Bad signal strength in percent (default 29)
     signal_degraded: Degraded signal strength in percent (default 49)
     thresholds: specify color thresholds to use (default [])
@@ -59,7 +60,10 @@ SAMPLE OUTPUT
 import math
 import re
 
-DEFAULT_FORMAT = "W: {bitrate} {bitrate_unit} {signal_percent}% {ssid}|W: down"
+DEFAULT_FORMAT = (
+    r"\?color=status W: {bitrate} {bitrate_unit} {signal_percent}% {ssid}"
+    r"|\?color=status W: down"
+)
 STRING_NOT_INSTALLED = "iw not installed"
 STRING_NO_DEVICE = "no available device"
 
@@ -177,7 +181,7 @@ class Py3status:
         signal_dbm = None
         signal_percent = None
         ssid = None
-        color = self.color_down
+        self.color_status = self.color_down
         quality = 0
 
         # bitrate
@@ -229,17 +233,17 @@ class Py3status:
         # wifi
         if ssid is not None:
             icon = self.blocks[math.ceil(quality / 100 * (len(self.blocks) - 1))]
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             if bitrate:
                 if bitrate <= self.bitrate_bad:
-                    color = self.py3.COLOR_BAD
+                    self.color_status = self.py3.COLOR_BAD
                 elif bitrate <= self.bitrate_degraded:
-                    color = self.py3.COLOR_DEGRADED
+                    self.color_status = self.py3.COLOR_DEGRADED
             if signal_dbm:
                 if signal_dbm <= self.signal_dbm_bad:
-                    color = self.py3.COLOR_BAD
+                    self.color_status = self.py3.COLOR_BAD
                 elif signal_dbm <= self.signal_dbm_degraded:
-                    color = self.py3.COLOR_DEGRADED
+                    self.color_status = self.py3.COLOR_DEGRADED
 
         wifi_data = {
             "bitrate": bitrate,
@@ -262,8 +266,6 @@ class Py3status:
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(self.format, wifi_data),
         }
-        if not self.thresholds_init:
-            response["color"] = color
         return response
 
 
