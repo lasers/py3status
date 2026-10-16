@@ -1,9 +1,9 @@
-"""
+r"""
 Determine if you have an Internet Connection.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default '{icon}')
+    format: display format for this module (default '\?color=status {icon}')
     icon_off: show when connection is offline (default '■')
     icon_on: show when connection is online (default '●')
     timeout: time to wait for a response, in seconds (default 2)
@@ -35,7 +35,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "{icon}"
+    format = r"\?color=status {icon}"
     icon_off = "■"
     icon_on = "●"
     timeout = 2
@@ -79,15 +79,14 @@ class Py3status:
     def online_status(self):
         if self._connection_present():
             icon = self.icon_on
-            color = self.color_on
+            self.color_status = self.color_on
         else:
-            color = self.color_off
+            self.color_status = self.color_off
             icon = self.icon_off
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(self.format, {"icon": icon}),
-            "color": color,
         }
 
 
