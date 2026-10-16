@@ -12,7 +12,7 @@ Configuration parameters:
     button_stop: mouse button to stop the playback (default 3)
     cache_timeout: refresh interval for this module (default 5)
     format: display format for this module
-        *(default '\?if=is_started [\?if=is_stopped \[\] moc|'
+        *(default '\?color=status \?if=is_started [\?if=is_stopped \[\] moc|'
         '[\?if=is_paused \|\|][\?if=is_playing >] {title}]')*
     replacements: specify a list/dict of string placeholders to modify (default None)
     sleep_timeout: when moc is not running, this interval will be used to
@@ -86,7 +86,7 @@ class Py3status:
     button_stop = 3
     cache_timeout = 5
     format = (
-        r"\?if=is_started [\?if=is_stopped \[\] moc|"
+        r"\?color=status \?if=is_started [\?if=is_stopped \[\] moc|"
         r"[\?if=is_paused \|\|][\?if=is_playing >] {title}]"
     )
     replacements = None
@@ -120,7 +120,7 @@ class Py3status:
     def moc(self):
         is_paused = is_playing = is_stopped = None
         cached_until = self.sleep_timeout
-        color = self.py3.COLOR_BAD
+        self.color_status = self.py3.COLOR_BAD
 
         is_started, moc_data = self._get_moc_data()
 
@@ -131,13 +131,13 @@ class Py3status:
             self.state = moc_data["state"]
             if self.state == "PLAY":
                 is_playing = True
-                color = self.color_playing
+                self.color_status = self.color_playing
             elif self.state == "PAUSE":
                 is_paused = True
-                color = self.color_paused
+                self.color_status = self.color_paused
             elif self.state == "STOP":
                 is_stopped = True
-                color = self.color_stopped
+                self.color_status = self.color_stopped
 
         for x in self.replacements_init:
             if x in moc_data:
@@ -154,7 +154,6 @@ class Py3status:
 
         return {
             "cached_until": self.py3.time_in(cached_until),
-            "color": color,
             "full_text": self.py3.safe_format(self.format, moc_data),
         }
 
