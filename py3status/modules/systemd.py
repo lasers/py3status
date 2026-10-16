@@ -3,7 +3,7 @@ Display status of a service on your system.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 5)
-    format: display format for this module (default '\?if=!hide {unit}: {status}')
+    format: display format for this module (default '\?color=status \?if=!hide {unit}: {status}')
     hide_extension: suppress extension of the systemd unit (default False)
     hide_if_default: suppress the output if the systemd unit is in default state
         'off' the output is never suppressed
@@ -60,7 +60,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 5
-    format = r"\?if=!hide {unit}: {status}"
+    format = r"\?color=status \?if=!hide {unit}: {status}"
     hide_extension = False
     hide_if_default = "off"
     unit = "dbus.service"
@@ -84,14 +84,14 @@ class Py3status:
         state = self.systemd_interface.Get("org.freedesktop.systemd1.Unit", "UnitFileState")
 
         if exists == "not-found":
-            color = self.py3.COLOR_DEGRADED
+            self.color_status = self.py3.COLOR_DEGRADED
             status = exists
         elif status == "active":
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
         elif status == "inactive":
-            color = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
         else:
-            color = self.py3.COLOR_DEGRADED
+            self.color_status = self.py3.COLOR_DEGRADED
 
         if self.hide_if_default == "on":
             hide = (status == "active" and state == "enabled") or (
@@ -107,7 +107,6 @@ class Py3status:
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": color,
             "full_text": self.py3.safe_format(
                 self.format, {"hide": hide, "unit": unitPrintName, "status": status}
             ),
