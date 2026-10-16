@@ -1,11 +1,11 @@
-"""
+r"""
 Control screen rotation.
 
 Configuration parameters:
     cache_timeout: how often to refresh this module.
         (default 10)
     format: a string that formats the output, can include placeholders.
-        (default '{icon}')
+        (default '\?color=status {icon}')
     hide_if_disconnected: a boolean flag to hide icon when `screen` is
         disconnected.
         It has no effect unless `screen` option is also configured.
@@ -49,7 +49,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "{icon}"
+    format = r"\?color=status {icon}"
     hide_if_disconnected = False
     horizontal_icon = "H"
     horizontal_rotation = "normal"
@@ -116,6 +116,14 @@ class Py3status:
                 screen = self.screen or all_outputs[0]
             else:
                 screen = "ALL"
+
+            # coloration
+            self.color_status = None
+            if selected_screen_disconnected and not self.hide_if_disconnected:
+                self.color_status = self.py3.COLOR_DEGRADED
+            elif self.displayed == self._get_current_rotation_icon(all_outputs):
+                self.color_status = self.py3.COLOR_GOOD
+
             full_text = self.py3.safe_format(
                 self.format, dict(icon=self.displayed or "?", screen=screen)
             )
@@ -124,12 +132,6 @@ class Py3status:
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": full_text,
         }
-
-        # coloration
-        if selected_screen_disconnected and not self.hide_if_disconnected:
-            response["color"] = self.py3.COLOR_DEGRADED
-        elif self.displayed == self._get_current_rotation_icon(all_outputs):
-            response["color"] = self.py3.COLOR_GOOD
 
         self.scrolling = False
         return response
