@@ -1,4 +1,4 @@
-"""
+r"""
 Volume control.
 
 Configuration parameters:
@@ -19,9 +19,9 @@ Configuration parameters:
         "aplay -L", "pactl list sinks short", "pamixer --list-sinks", "wpctl status -n"
         (default None)
     format: Format of the output.
-        (default '[\\?if=is_input 😮|♪]: {percentage}%')
+        (default '\?color=percentage [\?if=is_input 😮|♪]: {percentage}%')
     format_muted: Format of the output when the volume is muted.
-        (default '[\\?if=is_input 😶|♪]: muted')
+        (default '\?color=muted [\?if=is_input 😶|♪]: muted')
     is_input: Is this an input device or an output device?
         (default False)
     max_volume: Allow the volume to be increased past 100% if available.
@@ -441,8 +441,8 @@ class Py3status:
     channel = None
     command = None
     device = None
-    format = r"[\?if=is_input 😮|♪]: {percentage}%"
-    format_muted = r"[\?if=is_input 😶|♪]: muted"
+    format = r"\?color=percentage [\?if=is_input 😮|♪]: {percentage}%"
+    format_muted = r"\?color=muted [\?if=is_input 😶|♪]: muted"
     is_input = False
     max_volume = 120
     thresholds = [(0, "bad"), (20, "degraded"), (50, "good")]
@@ -525,17 +525,14 @@ class Py3status:
 
     def volume_status(self):
         perc, muted = self.backend.get_volume()
-        color = None
         icon = None
         new_format = self.format
 
         if perc is None:
             perc = "?"
         elif muted:
-            color = self.color_muted
             new_format = self.format_muted
         else:
-            color = self.py3.threshold_get_color(perc)
             icon = self.blocks[
                 min(
                     len(self.blocks) - 1,
@@ -543,12 +540,12 @@ class Py3status:
                 )
             ]
 
+        self.py3.threshold_get_color(perc, "percentage")
         volume_data = {"icon": icon, "percentage": perc}
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(new_format, volume_data),
-            "color": color,
         }
 
     def on_click(self, event):
