@@ -1,4 +1,4 @@
-"""
+r"""
 Control Xscreensaver.
 
 This script is useful for people who let Xscreensaver manage DPMS settings.
@@ -10,7 +10,7 @@ Configuration parameters:
     button_activate: mouse button to activate Xscreensaver (default 3)
     button_toggle: mouse button to toggle Xscreensaver (default 1)
     cache_timeout: refresh interval for this module (default 15)
-    format: display format for this module (default '{icon}')
+    format: display format for this module (default '\?color=status {icon}')
     icon_off: show when Xscreensaver is not running (default 'XSCR')
     icon_on: show when Xscreensaver is running (default 'XSCR')
 
@@ -43,7 +43,7 @@ class Py3status:
     button_activate = 3
     button_toggle = 1
     cache_timeout = 15
-    format = "{icon}"
+    format = r"\?color=status {icon}"
     icon_off = "XSCR"
     icon_on = "XSCR"
 
@@ -64,15 +64,14 @@ class Py3status:
         run = self._is_running()
         if run:
             icon = self.icon_on
-            color = self.color_on
+            self.color_status = self.color_on
         else:
             icon = self.icon_off
-            color = self.color_off
+            self.color_status = self.color_off
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(self.format, {"icon": icon}),
-            "color": color,
         }
 
     def on_click(self, event):
