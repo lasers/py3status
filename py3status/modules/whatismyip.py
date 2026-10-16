@@ -1,4 +1,4 @@
-"""
+r"""
 Display public IP address and online status.
 
 Configuration parameters:
@@ -12,7 +12,7 @@ Configuration parameters:
         (default None)
     format: available placeholders are {ip} and {country},
         as well as any other key in JSON fetched from `url_geo`
-        (default '{ip}')
+        (default '\?color=status {ip}')
     hide_when_offline: hide the module output when offline (default False)
     icon_off: what to display when offline (default '■')
     icon_on: what to display when online (default '●')
@@ -72,7 +72,7 @@ class Py3status:
     button_toggle = 1
     cache_timeout = 60
     expected = None
-    format = "{ip}"
+    format = r"\?color=status {ip}"
     hide_when_offline = False
     icon_off = "■"
     icon_on = "●"
@@ -128,6 +128,10 @@ class Py3status:
         except self.py3.RequestException:
             return None
 
+    def _status(self, icon):
+        # icons are also {icon} placeholders, so color them here
+        return self.py3.safe_format(r"\?color=status {icon}", {"icon": icon})
+
     def whatismyip(self):
         # refresh
         current_time = time.monotonic()
@@ -148,23 +152,24 @@ class Py3status:
             info = self.ip_data = self._get_my_ip_info()
 
         response = {"cached_until": self.py3.time_in(cached_until)}
+        self.color_status = None
 
         if info is None and self.hide_when_offline:
             response["full_text"] = ""
         elif info is not None:
             info["icon"] = self.icon_on
-            response["color"] = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             for key, val in self.expected.items():
                 if val != info.get(key):
-                    response["color"] = self.py3.COLOR_DEGRADED
+                    self.color_status = self.py3.COLOR_DEGRADED
                     break
             if self.mode == "ip":
                 response["full_text"] = self.py3.safe_format(self.format, info)
             else:
-                response["full_text"] = self.icon_on
+                response["full_text"] = self._status(self.icon_on)
         else:
-            response["full_text"] = self.icon_off
-            response["color"] = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
+            response["full_text"] = self._status(self.icon_off)
 
         return response
 
