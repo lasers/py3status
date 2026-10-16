@@ -1,4 +1,4 @@
-"""
+r"""
 Drop-in replacement for i3status run_watch VPN module.
 
 Expands on the i3status module by displaying the name of the connected vpn
@@ -10,7 +10,7 @@ Configuration parameters:
     check_pid: If True, act just like the default i3status module.
         (default False)
     format: Format of the output.
-        (default 'VPN: {format_vpn}|VPN: no')
+        (default '\?color=status VPN: {format_vpn}|\?color=status VPN: no')
     format_vpn: display format for vpns (default '{name}')
     format_vpn_separator: show separator if more than one VPN (default ', ')
     pidfile: Same as i3status pidfile, checked when check_pid is True.
@@ -57,7 +57,7 @@ class Py3status:
     # available configuration parameters
     cache_timeout = 10
     check_pid = False
-    format = "VPN: {format_vpn}|VPN: no"
+    format = r"\?color=status VPN: {format_vpn}|\?color=status VPN: no"
     format_vpn = "{name}"
     format_vpn_separator = ", "
     pidfile = "/sys/class/net/vpn0/dev_id"
@@ -197,7 +197,7 @@ class Py3status:
                 format_vpn = self.py3.safe_format(self.format_vpn, vpn)
                 vpns.append(format_vpn)
 
-        color = self.py3.COLOR_GOOD if vpns else self.py3.COLOR_BAD
+        self.color_status = self.py3.COLOR_GOOD if vpns else self.py3.COLOR_BAD
 
         # Format and create the response dict
         format_vpn_separator = self.py3.safe_format(self.format_vpn_separator)
@@ -205,7 +205,6 @@ class Py3status:
         full_text = self.py3.safe_format(self.format, {"format_vpn": format_vpns})
         response = {
             "full_text": full_text,
-            "color": color,
             "cached_until": self.py3.CACHE_FOREVER,
         }
 
