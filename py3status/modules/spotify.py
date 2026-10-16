@@ -1,4 +1,4 @@
-"""
+r"""
 Display song currently playing in Spotify.
 
 Configuration parameters:
@@ -10,11 +10,11 @@ Configuration parameters:
         spotify. If you use spotifyd as a client, set this to
         'org.mpris.MediaPlayer2.spotifyd'
         (default 'org.mpris.MediaPlayer2.spotify')
-    format: see placeholders below (default '{artist} : {title}')
+    format: see placeholders below (default '\?color=status {artist} : {title}')
     format_down: define output if spotify is not running
-        (default 'Spotify not running')
+        (default '\?color=status Spotify not running')
     format_stopped: define output if spotify is not playing
-        (default 'Spotify stopped')
+        (default '\?color=status Spotify stopped')
     replacements: specify a list/dict of string placeholders to modify
         (default None)
 
@@ -81,9 +81,9 @@ class Py3status:
     button_previous = None
     cache_timeout = 5
     dbus_client = "org.mpris.MediaPlayer2.spotify"
-    format = "{artist} : {title}"
-    format_down = "Spotify not running"
-    format_stopped = "Spotify stopped"
+    format = r"\?color=status {artist} : {title}"
+    format_down = r"\?color=status Spotify not running"
+    format_stopped = r"\?color=status Spotify stopped"
     replacements = None
 
     def post_config_hook(self):
@@ -116,14 +116,12 @@ class Py3status:
                 title = metadata.get("xesam:title")
                 playback_status = self._get_playback_status()
                 if playback_status == "Playing":
-                    color = self.py3.COLOR_PLAYING or self.py3.COLOR_GOOD
+                    self.color_status = self.py3.COLOR_PLAYING or self.py3.COLOR_GOOD
                 else:
-                    color = self.py3.COLOR_PAUSED or self.py3.COLOR_DEGRADED
+                    self.color_status = self.py3.COLOR_PAUSED or self.py3.COLOR_DEGRADED
             except Exception:
-                return (
-                    self.format_stopped,
-                    self.py3.COLOR_PAUSED or self.py3.COLOR_DEGRADED,
-                )
+                self.color_status = self.py3.COLOR_PAUSED or self.py3.COLOR_DEGRADED
+                return self.py3.safe_format(self.format_stopped)
 
             spotify_data = {
                 "title": title,
@@ -137,21 +135,19 @@ class Py3status:
                 if x in spotify_data:
                     spotify_data[x] = self.py3.replace(spotify_data[x], x)
 
-            return (self.py3.safe_format(self.format, spotify_data), color)
+            return self.py3.safe_format(self.format, spotify_data)
         except Exception:
-            return (self.format_down, self.py3.COLOR_OFFLINE or self.py3.COLOR_BAD)
+            self.color_status = self.py3.COLOR_OFFLINE or self.py3.COLOR_BAD
+            return self.py3.safe_format(self.format_down)
 
     def spotify(self):
         """
         Get the current "artist - title" and return it.
         """
-        text, color = self._get_text()
-        response = {
+        return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": color,
-            "full_text": text,
+            "full_text": self._get_text(),
         }
-        return response
 
     def on_click(self, event):
         """ """
