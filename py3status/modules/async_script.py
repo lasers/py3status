@@ -1,4 +1,4 @@
-"""
+r"""
 Display output of a given script asynchronously.
 
 Always displays the last line of output from a given script, set by
@@ -8,7 +8,7 @@ as such (set force_nocolor to disable). The script may have parameters.
 Configuration parameters:
     force_nocolor: if true, won't check if a line contains color
         (default False)
-    format: see placeholders below (default '{output}')
+    format: see placeholders below (default '\?color=status {output}')
     script_path: script you want to show output of (compulsory)
         (default None)
     strip_output: shall we strip leading and trailing spaces from output
@@ -20,7 +20,7 @@ Format placeholders:
 Examples:
 ```
 async_script {
-    format = "{output}"
+    format = "\?color=status {output}"
     script_path = "ping 127.0.0.1"
 }
 ```
@@ -45,7 +45,7 @@ class Py3status:
 
     # available configuration parameters
     force_nocolor = False
-    format = "{output}"
+    format = r"\?color=status {output}"
     script_path = None
     strip_output = False
 
@@ -53,7 +53,7 @@ class Py3status:
         # class variables:
         self.command_thread = Thread()
         self.command_output = None
-        self.command_color = None
+        self.color_status = None
         self.command_error = None  # cannot throw self.py3.error from thread
 
         if not self.script_path:
@@ -69,7 +69,7 @@ class Py3status:
                 output = command.stdout.readline().decode().strip()
 
                 if re.search(r"^#[0-9a-fA-F]{6}$", output) and not self.force_nocolor:
-                    self.command_color = output
+                    self.color_status = output
                 else:
                     if output != self.command_output:
                         self.command_output = output
@@ -89,9 +89,6 @@ class Py3status:
             self.command_thread = Thread(target=self._command_start)
             self.command_thread.daemon = True
             self.command_thread.start()
-
-        if self.command_color is not None:
-            response["color"] = self.command_color
 
         response["full_text"] = self.py3.safe_format(self.format, {"output": self.command_output})
         return response
