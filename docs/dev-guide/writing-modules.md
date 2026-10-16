@@ -257,9 +257,13 @@ click_info {
 `self.py3` in our module has color constants that we can access, these
 allow the user to set colors easily in their config.
 
+The color goes into the format with `\?color=status`, which uses the
+module's `self.color_status` attribute. The user can then move or drop it
+in their own format.
+
 ```python
 # -*- coding: utf-8 -*-
-"""
+r"""
 Example module that uses colors.
 
 We generate a random number between and color it depending on its value.
@@ -267,7 +271,7 @@ Clicking on the module will update it an a new number will be chosen.
 
 Configuration parameters:
     format: Initial format to use
-        (default 'Number {number}')
+        (default '\?color=status Number {number}')
 
 Format placeholders:
     {number} Our random number
@@ -281,20 +285,18 @@ from random import randint
 
 
 class Py3status:
-    format = 'Number {number}'
+    format = r'\?color=status Number {number}'
 
     def random(self):
         number = randint(0, 9)
-        full_text = self.py3.safe_format(self.format, {'number': number})
 
         if number < 5:
-            color = self.py3.COLOR_LOW
+            self.color_status = self.py3.COLOR_LOW
         else:
-            color = self.py3.COLOR_HIGH
+            self.color_status = self.py3.COLOR_HIGH
 
         return {
-            'full_text': full_text,
-            'color': color,
+            'full_text': self.py3.safe_format(self.format, {'number': number}),
             'cached_until': self.py3.CACHE_FOREVER
         }
 
@@ -351,7 +353,8 @@ To never expire the `self.py3.CACHE_FOREVER` constant should be used.
 
 **color**
 
-The color that the module output will be displayed in.
+The color that the module output will be displayed in. Modules submitted
+to py3status should not set it, see [Colors](#colors).
 
 **composite**
 
@@ -421,6 +424,18 @@ class Py3status:
     def on_click(self, event):
         ...
 ```
+
+### Colors
+
+Modules submitted to py3status should not set `color` in their response or
+in composite items. Put `\?color=...` in the format instead, so users can
+change or drop it:
+
+- `\?color=good`, `\?color=bad`, ... for color constants.
+- `\?color=status` with `self.color_status` set before formatting, for a
+  color the module picks at runtime.
+- `\?color=<placeholder>` with `self.py3.threshold_get_color(value, name)`
+  for thresholds.
 
 ## Py3 module helper
 

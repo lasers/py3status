@@ -227,3 +227,32 @@ def test_module_method_order():
         line += "\n".join(errors)
         print(line)
         assert False
+
+
+def get_color_keys(_file):
+    # "color" set as a dict key, a subscript or a keyword argument
+    tree = ast.parse(_file.read_text(), filename=str(_file))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            for key in node.keys:
+                if isinstance(key, ast.Constant) and key.value == "color":
+                    yield key.lineno
+        elif isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Store):
+            if isinstance(node.slice, ast.Constant) and node.slice.value == "color":
+                yield node.lineno
+        elif isinstance(node, ast.keyword) and node.arg == "color":
+            yield node.value.lineno
+
+
+def test_module_response_color():
+    skip_files = ["__init__.py"]
+    errors = []
+
+    for _file in get_module_files(skip_files):
+        for lineno in get_color_keys(_file):
+            errors.append(f"`{_file.name}:{lineno}` sets `color`, use \\?color= in the format")
+    if errors:
+        line = "Response color error(s) detected!\n\n"
+        line += "\n".join(errors)
+        print(line)
+        assert False
