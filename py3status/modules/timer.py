@@ -1,4 +1,4 @@
-"""
+r"""
 A simple countdown timer.
 
 This is a very basic countdown timer.  You can change the timer length as well
@@ -12,7 +12,7 @@ Button 2 resets timer.
 
 Configuration parameters:
     command: shell command to run when the timer ends (default None)
-    format: display format for this module (default 'Timer {timer}')
+    format: display format for this module (default 'Timer [\?color=status {timer}]')
     sound: play sound file path when the timer ends (default None)
     time: number of seconds to start countdown with (default 60)
 
@@ -54,7 +54,7 @@ class Py3status:
 
     # available configuration parameters
     command = None
-    format = "Timer {timer}"
+    format = r"Timer [\?color=status {timer}]"
     sound = None
     time = 60
 
@@ -62,7 +62,7 @@ class Py3status:
         self.running = False
         self.end_time = None
         self.time_left = None
-        self.color = None
+        self.color_status = None
         self.alarm_timer = None
         self.alarm = False
         self.done = False
@@ -72,7 +72,7 @@ class Py3status:
         Called when the timer expires
         """
         self.running = False
-        self.color = self.py3.COLOR_BAD
+        self.color_status = self.py3.COLOR_BAD
         self.time_left = 0
         self.done = True
         if self.sound:
@@ -103,19 +103,11 @@ class Py3status:
             cached_until = self.py3.CACHE_FOREVER
 
         composites = [
-            {"full_text": str(hours), "color": self.color, "index": "hours"},
+            {"full_text": str(hours), "index": "hours"},
             {"full_text": ":"},
-            {
-                "full_text": format(minutes, "02d"),
-                "color": self.color,
-                "index": "minutes",
-            },
+            {"full_text": format(minutes, "02d"), "index": "minutes"},
             {"full_text": ":"},
-            {
-                "full_text": format(seconds, "02d"),
-                "color": self.color,
-                "index": "seconds",
-            },
+            {"full_text": format(seconds, "02d"), "index": "seconds"},
         ]
 
         timer = self.py3.composite_create(composites)
@@ -152,7 +144,7 @@ class Py3status:
                 # pause timer
                 self.running = False
                 self.time_left = int(self.end_time - time.monotonic())
-                self.color = self.py3.COLOR_DEGRADED
+                self.color_status = self.py3.COLOR_DEGRADED
                 if self.alarm_timer:
                     self.alarm_timer.cancel()
             else:
@@ -163,7 +155,7 @@ class Py3status:
                 else:
                     self.end_time = time.monotonic() + self.time
                 self.cache_offset = self.end_time % 1
-                self.color = self.py3.COLOR_GOOD
+                self.color_status = self.py3.COLOR_GOOD
                 if self.alarm_timer:
                     self.alarm_timer.cancel()
                 self.done = False
@@ -173,7 +165,7 @@ class Py3status:
         if button == 2:
             self.running = False
             self.time_left = None
-            self.color = None
+            self.color_status = None
             self.done = False
             if self.alarm_timer:
                 self.alarm_timer.cancel()
