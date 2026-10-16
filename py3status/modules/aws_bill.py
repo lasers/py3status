@@ -1,4 +1,4 @@
-"""
+r"""
 Display bill for Amazon Web Services.
 
 **WARNING: This module generate some costs on the AWS bill.
@@ -13,7 +13,7 @@ Configuration parameters:
     billing_file: Csv file location (default '/tmp/.aws_billing.csv')
     cache_timeout: How often we refresh this module in seconds (default 3600)
     format: string that formats the output. See placeholders below.
-        (default '{bill_amount}$')
+        (default '\?color=status {bill_amount}$')
     s3_bucket_name: The bucket where billing files are sent by AWS.
         Follow this article to activate this feature:
         https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-reports.html
@@ -52,7 +52,7 @@ class Py3status:
     aws_secret_access_key = ""
     billing_file = "/tmp/.aws_billing.csv"
     cache_timeout = 3600
-    format = "{bill_amount}$"
+    format = r"\?color=status {bill_amount}$"
     s3_bucket_name = ""
 
     def _get_bill_amount(self):
@@ -103,25 +103,28 @@ class Py3status:
     def aws_bill(self):
         response = {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": self.py3.COLOR_BAD,
             "full_text": "",
         }
 
         bill_amount = self._get_bill_amount()
+        error = None
 
         if bill_amount == "csv_error":
-            response["full_text"] = "Bad CSV file"
+            error = "Bad CSV file"
         elif bill_amount == "key_error":
-            response["full_text"] = "Key not found in the bucket"
+            error = "Key not found in the bucket"
         elif bill_amount == "bucket_error":
-            response["full_text"] = "Check the bucket name or your AWS keys"
+            error = "Check the bucket name or your AWS keys"
         elif bill_amount == "conn_error":
-            response["full_text"] = "Check your internet access"
+            error = "Check your internet access"
         elif bill_amount is not False:
+            self.color_status = self.py3.COLOR_GOOD
             response["full_text"] = self.py3.safe_format(self.format, {"bill_amount": bill_amount})
-            response["color"] = self.py3.COLOR_GOOD
         else:
-            response["full_text"] = "Global error - WTF exception"
+            error = "Global error - WTF exception"
+
+        if error:
+            response["full_text"] = self.py3.safe_format(r"\?color=bad {error}", {"error": error})
 
         return response
 
