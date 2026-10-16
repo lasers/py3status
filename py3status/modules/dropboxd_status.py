@@ -1,9 +1,9 @@
-"""
+r"""
 Display status of Dropbox daemon.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default "Dropbox: {status}")
+    format: display format for this module (default "\?color=status Dropbox: {status}")
     status_busy: text for placeholder {status} when Dropbox is busy
         (default None)
     status_off: text for placeholder {status} when Dropbox isn't running
@@ -61,7 +61,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "Dropbox: {status}"
+    format = r"\?color=status Dropbox: {status}"
     status_busy = None
     status_off = "isn't running"
     status_on = "Up to date"
@@ -85,19 +85,18 @@ class Py3status:
         status = self.py3.command_output("dropbox-cli status", localized=True).splitlines()[0]
 
         if status == "Dropbox isn't running!":
-            color = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
             status = self.status_off
         elif status == "Up to date":
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             status = self.status_on
         else:
-            color = self.py3.COLOR_DEGRADED
+            self.color_status = self.py3.COLOR_DEGRADED
             if self.status_busy is not None:
                 status = self.status_busy
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": color,
             "full_text": self.py3.safe_format(self.format, {"status": status}),
         }
 
