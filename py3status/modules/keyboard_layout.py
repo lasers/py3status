@@ -1,11 +1,11 @@
-"""
+r"""
 Display keyboard layout.
 
 Configuration parameters:
     button_next: mouse button to cycle next layout (default 4)
     button_prev: mouse button to cycle previous layout (default 5)
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default '{layout}')
+    format: display format for this module (default '\?color=status {layout}')
     layouts: specify a list of layouts to use (default None)
 
 Format placeholders:
@@ -61,7 +61,7 @@ class Py3status:
     button_next = 4
     button_prev = 5
     cache_timeout = 10
-    format = "{layout}"
+    format = r"\?color=status {layout}"
     layouts = None
 
     def post_config_hook(self):
@@ -145,11 +145,6 @@ class Py3status:
             self._last_layout = layout
         lang = self._layouts[self._active]
 
-        response = {
-            "cached_until": self.py3.time_in(self.cache_timeout),
-            "full_text": self.py3.safe_format(self.format, {"layout": lang, "variant": variant}),
-        }
-
         if self.colors and not self.colors_dict:
             self.colors_dict = {
                 k.strip(): v.strip()
@@ -167,10 +162,12 @@ class Py3status:
             lang_color = self.colors_dict.get(lang)
         if not lang_color:  # old compatibility: try default value
             lang_color = self.defaults.get(lang)
-        if lang_color:
-            response["color"] = lang_color
+        self.color_status = lang_color
 
-        return response
+        return {
+            "cached_until": self.py3.time_in(self.cache_timeout),
+            "full_text": self.py3.safe_format(self.format, {"layout": lang, "variant": variant}),
+        }
 
     def on_click(self, event):
         button = event["button"]
