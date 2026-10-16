@@ -1,4 +1,4 @@
-"""
+r"""
 Display SELinux state.
 
 This module displays the state of SELinux on your machine:
@@ -6,7 +6,7 @@ Enforcing (good), Permissive (degraded), or Disabled (bad).
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default 'SELinux: {state}')
+    format: display format for this module (default '\?color=status SELinux: {state}')
     state_disabled: show when no SELinux policy is loaded.
         (default 'disabled')
     state_enforcing: show when SELinux security policy is enforced.
@@ -46,7 +46,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "SELinux: {state}"
+    format = r"\?color=status SELinux: {state}"
     state_disabled = "disabled"
     state_enforcing = "enforcing"
     state_permissive = "permissive"
@@ -55,18 +55,17 @@ class Py3status:
         try:
             if selinux.security_getenforce():
                 state = self.state_enforcing
-                color = self.py3.COLOR_GOOD
+                self.color_status = self.py3.COLOR_GOOD
             else:
                 state = self.state_permissive
-                color = self.py3.COLOR_DEGRADED
+                self.color_status = self.py3.COLOR_DEGRADED
         except AttributeError:
             state = self.state_disabled
-            color = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(self.format, {"state": state}),
-            "color": color,
         }
 
 
