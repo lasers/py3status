@@ -236,22 +236,23 @@ class Py3status:
                 format = self.format_break_stopped
             cached_until = self.py3.CACHE_FOREVER
 
+        if not self._running:
+            self.color_status = self.py3.COLOR_BAD
+        elif self._active:
+            self.color_status = self.py3.COLOR_GOOD
+        else:
+            self.color_status = self.py3.COLOR_DEGRADED
+
+        # formats use str.format, so color the result here
+        text = format.format(breakno=self._break_number, format=formatted, **vals)
         response = {
-            "full_text": format.format(breakno=self._break_number, format=formatted, **vals),
+            "full_text": self.py3.safe_format(r"\?color=status {text}", {"text": text}),
             "cached_until": cached_until,
         }
 
         if self._alert:
             response["urgent"] = True
             self._alert = False
-
-        if not self._running:
-            response["color"] = self.py3.COLOR_BAD
-        else:
-            if self._active:
-                response["color"] = self.py3.COLOR_GOOD
-            else:
-                response["color"] = self.py3.COLOR_DEGRADED
 
         return response
 
