@@ -1,4 +1,4 @@
-"""
+r"""
 Display list of network interfaces and IP addresses.
 
 This module supports both IPv4 and IPv6. There is the possibility to blacklist
@@ -9,11 +9,11 @@ Configuration parameters:
     cache_timeout: refresh interval for this module in seconds.
         (default 30)
     format: format of the output.
-        (default 'Network: {format_iface}')
+        (default '\?color=status Network: {format_iface}')
     format_iface: format string for the list of IPs of each interface.
         (default '{iface}:[ {ip4}][ {ip6}]')
     format_no_ip: string to show if there are no IPs to display.
-        (default 'no connection')
+        (default '\?color=status no connection')
     iface_blacklist: list of interfaces to ignore. Accepts shell-style wildcards.
         (default ['lo'])
     iface_sep: string to write between interfaces.
@@ -64,9 +64,9 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 30
-    format = "Network: {format_iface}"
+    format = r"\?color=status Network: {format_iface}"
     format_iface = "{iface}:[ {ip4}][ {ip6}]"
-    format_no_ip = "no connection"
+    format_no_ip = r"\?color=status no connection"
     iface_blacklist = ["lo"]
     iface_sep = " "
     ip_blacklist = []
@@ -142,17 +142,17 @@ class Py3status:
                 )
             )
         if not connection:
+            self.color_status = self.py3.COLOR_BAD
             response["full_text"] = self.py3.safe_format(
                 self.format_no_ip,
                 {"format_iface": self.py3.composite_join(self.iface_sep, iface_list)},
             )
-            response["color"] = self.py3.COLOR_BAD
         else:
+            self.color_status = self.py3.COLOR_GOOD
             response["full_text"] = self.py3.safe_format(
                 self.format,
                 {"format_iface": self.py3.composite_join(self.iface_sep, iface_list)},
             )
-            response["color"] = self.py3.COLOR_GOOD
 
         return response
 
