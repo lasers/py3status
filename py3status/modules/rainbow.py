@@ -183,22 +183,27 @@ class Py3status:
             self.active_color = (self.active_color + 1) % len(self.colors)
             self._set_cycle_time()
 
-        color = self.colors[self.active_color]
+        self.color_rainbow = self.colors[self.active_color]
         content = self._get_current_output()
-        output = []
+        output = self.py3.composite_create([])
 
         if content:
             step = len(self.colors) // len(content)
         for index, item in enumerate(content):
             if self.multi_color:
                 offset = (self.active_color + (index * step)) % len(self.colors)
-                color = self.colors[offset]
+                self.color_rainbow = self.colors[offset]
             obj = item.copy()
-            if self.force or not obj.get("color"):
-                obj["color"] = color
-            output.append(obj)
+            if self.force:
+                obj.pop("color", None)
+            # \?color only fills in parts that have no color of their own
+            output += self.py3.composite_create(
+                self.py3.safe_format(
+                    r"\?color=rainbow {item}", {"item": self.py3.composite_create(obj)}
+                )
+            )
 
-        composites = {"output": self.py3.composite_create(output)}
+        composites = {"output": output}
         rainbow = self.py3.safe_format(self.format, composites)
 
         return {"cached_until": self._cycle_time, "full_text": rainbow}
