@@ -1,4 +1,4 @@
-"""
+r"""
 Display Graphite metrics.
 
 Configuration parameters:
@@ -8,6 +8,7 @@ Configuration parameters:
         use "max" or "min" to determine which one to display.
         (default "max")
     format: you MUST use placeholders here to display data, see below.
+        Use \?color=status to colorize on thresholds.
         (default '')
     graphite_url: URL to your graphite server. (default '')
     http_timeout: HTTP query timeout to graphite.
@@ -57,7 +58,7 @@ Dynamic format placeholders:
     TIP: use aliases !
         ```
         targets = "alias(carbon.agents.localhost-a.memUsage, 'local_memuse')"
-        format = "local carbon mem usage: {local_memuse} bytes"
+        format = "\?color=status local carbon mem usage: {local_memuse} bytes"
         ```
 
 Color options:
@@ -217,11 +218,11 @@ class Py3status:
         self._reset_notifications()
 
         color_key, r_json = self._render_graphite_json()
+        self.color_status = getattr(self.py3, f"COLOR_{color_key.upper()}")
         self._notify_user()
 
         response = {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": getattr(self.py3, f"COLOR_{color_key.upper()}"),
             "full_text": self.py3.safe_format(self.format, r_json),
         }
         return response
