@@ -248,20 +248,22 @@ class Py3status:
         if len(text) > self.max_width:
             text = "{}...".format(text[: self.max_width - 3])
 
-        response = {
+        self.color_status = None
+        if state == "play":
+            self.color_status = self.py3.COLOR_PLAY or self.py3.COLOR_GOOD
+        elif state == "pause":
+            self.color_status = self.py3.COLOR_PAUSE or self.py3.COLOR_DEGRADED
+        elif state == "stop":
+            self.color_status = self.py3.COLOR_STOP or self.py3.COLOR_BAD
+
+        if not state and self.hide_on_error:
+            text = ""
+
+        # text is plain (truncated) so color it here
+        return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "full_text": text if state or not self.hide_on_error else "",
+            "full_text": self.py3.safe_format(r"\?color=status {text}", {"text": text}),
         }
-
-        if state:
-            if state == "play":
-                response["color"] = self.py3.COLOR_PLAY or self.py3.COLOR_GOOD
-            elif state == "pause":
-                response["color"] = self.py3.COLOR_PAUSE or self.py3.COLOR_DEGRADED
-            elif state == "stop":
-                response["color"] = self.py3.COLOR_STOP or self.py3.COLOR_BAD
-
-        return response
 
     def kill(self):
         if self.idle_thread.is_alive():
