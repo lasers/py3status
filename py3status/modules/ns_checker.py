@@ -1,4 +1,4 @@
-"""
+r"""
 Display DNS resolution success on a configured domain.
 
 This module launch a simple query on each nameservers for the specified domain.
@@ -11,7 +11,7 @@ The default resolver can be overwritten with my_resolver.nameservers parameter.
 Configuration parameters:
     cache_timeout: how often we refresh this module in seconds (default 300)
     domain: domain name to check (default '')
-    format: output format string (default '{total_count} NS {status}')
+    format: output format string (default '\?color=status {total_count} NS {status}')
     lifetime: resolver lifetime (default 0.3)
     nameservers: specify a list of reference DNS nameservers (default [])
     resolvers: specify a list of DNS resolvers to use (default [])
@@ -46,7 +46,7 @@ class Py3status:
     # available configuration parameters
     cache_timeout = 300
     domain = ""
-    format = "{total_count} NS {status}"
+    format = r"\?color=status {total_count} NS {status}"
     lifetime = 0.3
     nameservers = []
     resolvers = []
@@ -59,10 +59,8 @@ class Py3status:
             self.resolvers = self.resolvers.split(",")
 
     def ns_checker(self):
-        response = {
-            "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": self.py3.COLOR_GOOD,
-        }
+        response = {"cached_until": self.py3.time_in(self.cache_timeout)}
+        self.color_status = self.py3.COLOR_GOOD
         count_nok = 0
         count_ok = 0
         nameservers = []
@@ -90,7 +88,7 @@ class Py3status:
             except:  # noqa e722
                 count_nok += 1
                 status = "NOK"
-                response["color"] = self.py3.COLOR_BAD
+                self.color_status = self.py3.COLOR_BAD
 
         response["full_text"] = self.py3.safe_format(
             self.format,
