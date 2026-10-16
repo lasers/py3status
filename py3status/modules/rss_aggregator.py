@@ -1,4 +1,4 @@
-"""
+r"""
 Display unread feeds in your favorite RSS aggregator.
 
 Configuration parameters:
@@ -8,7 +8,7 @@ Configuration parameters:
     cache_timeout: how often to run this check (default 60)
     feed_ids: list of IDs of feeds to watch, see note below (default [])
     folder_ids: list of IDs of folders ro watch (default [])
-    format: format to display (default 'Feed: {unseen}')
+    format: format to display (default '\?color=status Feed: {unseen}')
     password: login password (default None)
     server: aggregator server to connect to (default 'https://yourcloudinstance.com')
     user: login user (default None)
@@ -62,7 +62,7 @@ class Py3status:
     cache_timeout = 60
     feed_ids = []
     folder_ids = []
-    format = "Feed: {unseen}"
+    format = r"\?color=status Feed: {unseen}"
     password = None
     server = "https://yourcloudinstance.com"
     user = None
@@ -143,15 +143,16 @@ class Py3status:
 
         self._cached = self._cached if rss_count is None else rss_count
 
+        self.color_status = None
+        if rss_count is None:
+            self.color_status = self.py3.COLOR_ERROR or self.py3.COLOR_BAD
+        elif rss_count != 0:
+            self.color_status = self.py3.COLOR_NEW_ITEMS or self.py3.COLOR_GOOD
+
         response = {
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(self.format, {"unseen": self._cached}),
         }
-
-        if rss_count is None:
-            response["color"] = self.py3.COLOR_ERROR or self.py3.COLOR_BAD
-        elif rss_count != 0:
-            response["color"] = self.py3.COLOR_NEW_ITEMS or self.py3.COLOR_GOOD
 
         return response
 
