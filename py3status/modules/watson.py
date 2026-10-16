@@ -1,11 +1,11 @@
-"""
+r"""
 Display the current status of the watson time-tracking tool.
 
 Configuration parameters:
     cache_timeout: Number of seconds before state is re-read
         (default 10)
     format: The format for module output.
-        (default 'Project {project}{tag_str} started')
+        (default '\?color=status Project {project}{tag_str} started')
     state_file: Path to the file which watson uses to track its own state
         (default '~/.config/watson/state')
 
@@ -33,15 +33,21 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "Project {project}{tag_str} started"
+    format = r"\?color=status Project {project}{tag_str} started"
     state_file = "~/.config/watson/state"
 
     def post_config_hook(self):
         self.state_file = Path(self.state_file).expanduser()
 
+    def _error(self, error: str) -> Dict[str, str]:
+        return {
+            "full_text": self.py3.safe_format(r"\?color=bad {error}", {"error": error}),
+            "cached_until": self.py3.time_in(seconds=self.cache_timeout),
+        }
+
     def _format_output(self, session_data: Dict[str, Union[str, int, List[str]]]) -> Dict[str, str]:
         if not session_data:
-            return {"full_text": "No project started", "color": self.py3.COLOR_BAD}
+            return self._error("No project started")
 
         project = session_data["project"]
         tags = session_data["tags"]
@@ -51,20 +57,16 @@ class Py3status:
         else:
             tag_str = " "
 
+        self.color_status = self.py3.COLOR_GOOD
         return {
             "full_text": self.py3.safe_format(
                 self.format, {"project": project, "tag_str": tag_str}
             ),
-            "color": self.py3.COLOR_GOOD,
         }
 
     def watson(self) -> Dict[str, str]:
         if not self.state_file.is_file():
-            return {
-                "full_text": "State file not found",
-                "color": self.py3.COLOR_BAD,
-                "cached_until": self.py3.time_in(seconds=self.cache_timeout),
-            }
+            return self._error("State file not found")
 
         try:
             with self.state_file.open("r") as f:
@@ -73,17 +75,9 @@ class Py3status:
                 output["cached_until"] = self.py3.time_in(seconds=self.cache_timeout)
                 return output
         except OSError:
-            return {
-                "full_text": "Error reading file",
-                "color": self.py3.COLOR_BAD,
-                "cached_until": self.py3.time_in(seconds=self.cache_timeout),
-            }
+            return self._error("Error reading file")
         except json.JSONDecodeError:
-            return {
-                "full_text": "Error decoding json",
-                "color": self.py3.COLOR_BAD,
-                "cached_until": self.py3.time_in(seconds=self.cache_timeout),
-            }
+            return self._error("Error decoding json")
 
 
 if __name__ == "__main__":
