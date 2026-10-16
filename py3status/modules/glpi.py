@@ -1,4 +1,4 @@
-"""
+r"""
 Display number of open tickets from GLPI.
 
 It features thresholds to colorize the output and forces a low timeout to
@@ -8,7 +8,7 @@ Configuration parameters:
     cache_timeout: how often we refresh this module in seconds (default 300)
     critical: set bad color above this threshold (default 20)
     db: database to use (default '')
-    format: format of the module output (default '{tickets_open} tickets')
+    format: format of the module output (default '\?color=status {tickets_open} tickets')
     host: database host to connect to (default '')
     password: login password (default '')
     timeout: timeout for database connection (default 5)
@@ -41,7 +41,7 @@ class Py3status:
     cache_timeout = 300
     critical = 20
     db = ""
-    format = "{tickets_open} tickets"
+    format = r"\?color=status {tickets_open} tickets"
     host = ""
     password = ""
     timeout = 5
@@ -50,6 +50,7 @@ class Py3status:
 
     def glpi(self):
         response = {"full_text": ""}
+        self.color_status = None
 
         mydb = MySQLdb.connect(
             host=self.host,
@@ -68,9 +69,9 @@ class Py3status:
         if row:
             open_tickets = int(row[0])
             if open_tickets > self.critical:
-                response.update({"color": self.py3.COLOR_BAD})
+                self.color_status = self.py3.COLOR_BAD
             elif open_tickets > self.warning:
-                response.update({"color": self.py3.COLOR_DEGRADED})
+                self.color_status = self.py3.COLOR_DEGRADED
             response["full_text"] = self.py3.safe_format(
                 self.format, {"tickets_open": open_tickets}
             )
