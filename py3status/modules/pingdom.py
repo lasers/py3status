@@ -1,4 +1,4 @@
-"""
+r"""
 Display response times of the configured Pingdom checks.
 
 We also verify the status of the checks and colorize if needed.
@@ -8,7 +8,7 @@ Configuration parameters:
     app_key: create an APP KEY on pingdom first (default '')
     cache_timeout: how often to refresh the check from pingdom (default 600)
     checks: comma separated pindgom check names to display (default '')
-    format: display format for this module (default '{pingdom}')
+    format: display format for this module (default '\?color=status {pingdom}')
     login: pingdom login (default '')
     max_latency: maximal latency before coloring the output (default 500)
     password: pingdom password (default '')
@@ -46,7 +46,7 @@ class Py3status:
     app_key = ""
     cache_timeout = 600
     checks = ""
-    format = "{pingdom}"
+    format = r"\?color=status {pingdom}"
     login = ""
     max_latency = 500
     password = ""
@@ -57,6 +57,7 @@ class Py3status:
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": "",
         }
+        self.color_status = None
         pingdom = None
 
         # parse some configuration parameters
@@ -75,9 +76,9 @@ class Py3status:
                 if check["status"] == "up":
                     pingdom += "{}: {}ms, ".format(check["name"], check["lastresponsetime"])
                     if check["lastresponsetime"] > self.max_latency:
-                        response["color"] = self.py3.COLOR_DEGRADED
+                        self.color_status = self.py3.COLOR_DEGRADED
                 else:
-                    response["color"] = self.py3.COLOR_BAD
+                    self.color_status = self.py3.COLOR_BAD
                     pingdom += "{}: DOWN".format(check["name"])
             pingdom = pingdom.strip(", ")
             response["full_text"] = self.py3.safe_format(self.format, {"pingdom": pingdom})
