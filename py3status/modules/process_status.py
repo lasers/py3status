@@ -1,9 +1,9 @@
-"""
+r"""
 Display status of a process on your system.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default '{icon}')
+    format: display format for this module (default '\?color=status {icon}')
     full: match against the full command line (default False)
     icon_off: show this if a process is not running (default '■')
     icon_on: show this if a process is running (default '●')
@@ -34,7 +34,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "{icon}"
+    format = r"\?color=status {icon}"
     full = False
     icon_off = "■"
     icon_on = "●"
@@ -75,14 +75,13 @@ class Py3status:
     def process_status(self):
         if self._is_running():
             icon = self.icon_on
-            color = self.color_on
+            self.color_status = self.color_on
         else:
             icon = self.icon_off
-            color = self.color_off
+            self.color_status = self.color_off
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": color,
             "full_text": self.py3.safe_format(self.format, {"icon": icon, "process": self.process}),
         }
 
