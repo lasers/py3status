@@ -1,4 +1,4 @@
-"""
+r"""
 Display battery information.
 
 Configuration parameters:
@@ -15,7 +15,7 @@ Configuration parameters:
         set to 'None' if you want to hide the charging state of your battery
         (default "⚡")
     format: string that formats the output. See placeholders below.
-        (default "{icon}")
+        (default "\?color=status {icon}")
     format_notify_charging: format of the notification received when you click
         on the module while your computer is plugged in
         (default 'Charging ({percent}%)')
@@ -102,7 +102,7 @@ CHARGING_CHARACTER = "⚡"
 EMPTY_BLOCK_CHARGING = "|"
 EMPTY_BLOCK_DISCHARGING = "⍀"
 FULL_BLOCK = "█"
-FORMAT = "{icon}"
+FORMAT = r"\?color=status {icon}"
 FORMAT_NOTIFY_CHARGING = "Charging ({percent}%)"
 FORMAT_NOTIFY_DISCHARGING = "{time_remaining}"
 FORMAT_STATUS_BAD = "CRIT"
@@ -155,20 +155,23 @@ class Py3status:
                 {
                     "param": "mode",
                     "value": "ascii_bar",
-                    "substitute": {"param": "format", "value": "{ascii_bar}"},
-                    "msg": 'obsolete parameter use `format = "{ascii_bar}"`',
+                    "substitute": {"param": "format", "value": r"\?color=status {ascii_bar}"},
+                    "msg": r'obsolete parameter use `format = "\?color=status {ascii_bar}"`',
                 },
                 {
                     "param": "mode",
                     "value": "text",
-                    "substitute": {"param": "format", "value": "Battery: {percent}"},
-                    "msg": 'obsolete parameter use `format = "{percent}"`',
+                    "substitute": {
+                        "param": "format",
+                        "value": r"\?color=status Battery: {percent}",
+                    },
+                    "msg": r'obsolete parameter use `format = "\?color=status Battery: {percent}"`',
                 },
                 {
                     "param": "show_percent_with_blocks",
                     "value": True,
-                    "substitute": {"param": "format", "value": "{icon} {percent}%"},
-                    "msg": 'obsolete parameter use `format = "{icon} {percent}%"`',
+                    "substitute": {"param": "format", "value": r"\?color=status {icon} {percent}%"},
+                    "msg": r'obsolete parameter use `format = "\?color=status {icon} {percent}%"`',
                 },
             ],
         }
@@ -448,7 +451,6 @@ class Py3status:
         self.response = {}
 
         self._set_bar_text()
-        self._set_bar_color()
         self._set_cache_timeout()
 
         return self.response
@@ -463,26 +465,27 @@ class Py3status:
     def _set_bar_color(self):
         notify_msg = None
         if self.charging:
-            self.response["color"] = self.py3.COLOR_CHARGING or "#FCE94F"
+            self.color_status = self.py3.COLOR_CHARGING or "#FCE94F"
             battery_status = "charging"
         elif self.percent_charged < self.threshold_bad:
-            self.response["color"] = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
             battery_status = "bad"
             notify_msg = {
                 "msg": "Battery level is critically low ({}%)",
                 "level": "error",
             }
         elif self.percent_charged < self.threshold_degraded:
-            self.response["color"] = self.py3.COLOR_DEGRADED
+            self.color_status = self.py3.COLOR_DEGRADED
             battery_status = "degraded"
             notify_msg = {
                 "msg": "Battery level is running low ({}%)",
                 "level": "warning",
             }
         elif self.percent_charged >= self.threshold_full:
-            self.response["color"] = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             battery_status = "full"
         else:
+            self.color_status = None
             battery_status = "good"
 
         if notify_msg and self.notify_low_level and self.last_known_status != battery_status:
@@ -507,6 +510,7 @@ class Py3status:
         self._update_icon()
         self._update_ascii_bar()
         self._update_status()
+        self._set_bar_color()
         self._update_full_text()
 
         return self._build_response()
