@@ -1,4 +1,4 @@
-"""
+r"""
 Display song/video and control MPRIS compatible players.
 
 There are two ways to control the media player. Either by clicking with a mouse
@@ -15,8 +15,9 @@ Configuration parameters:
     button_toggle: mouse button to toggle between play and pause mode (default 1)
     cache_timeout: time (s) between Position update (default 0.5)
     format: display format for this module
-        (default '[{artist} - ][{title}] {previous} {toggle} {next}')
-    format_none: define output if no player is running (default 'no player running')
+        (default '\?color=status [{artist} - ][{title}] {previous} {toggle} {next}')
+    format_none: define output if no player is running
+        (default '\?color=status no player running')
     icon_next: specify icon for next button (default u'\u25b9')
     icon_pause: specify icon for pause button (default u'\u25eb')
     icon_play: specify icon for play button (default u'\u25b7')
@@ -196,22 +197,25 @@ class Player:
         for button, control_state in self.parent._states.items():
             if self.parent.py3.format_contains(self.parent.format, button):
                 if self.get_button_state(control_state):
-                    color = self.parent._color_active
+                    name = "control_active"
                 else:
-                    color = self.parent._color_inactive
-
-                buttons[button] = {
-                    "color": color,
-                    "full_text": control_state["icon"],
-                    "index": button,
-                }
+                    name = "control_inactive"
+                buttons[button] = (name, control_state["icon"])
 
         if buttons.get("toggle"):
-            buttons["toggle"]["full_text"] = self.parent._state_icon_color_map[self.state][
-                "toggle_icon"
-            ]
+            buttons["toggle"] = (
+                buttons["toggle"][0],
+                self.parent._state_icon_color_map[self.state]["toggle_icon"],
+            )
 
-        self._buttons = buttons
+        self._buttons = {}
+        for button, (name, icon) in buttons.items():
+            composite = self.parent.py3.composite_create(
+                self.parent.py3.safe_format(f"\\?color={name} {{icon}}", {"icon": icon})
+            )
+            for item in composite:
+                item["index"] = button
+            self._buttons[button] = composite
 
     def _set_can_property(self, key, value):
         self._can[key] = value
@@ -380,8 +384,8 @@ class Py3status:
     button_switch_to_top_player = None
     button_toggle = 1
     cache_timeout = 0.5
-    format = "[{artist} - ][{title}] {previous} {toggle} {next}"
-    format_none = "no player running"
+    format = r"\?color=status [{artist} - ][{title}] {previous} {toggle} {next}"
+    format_none = r"\?color=status no player running"
     icon_next = "\u25b9"
     icon_pause = "\u25eb"
     icon_play = "\u25b7"
@@ -468,26 +472,26 @@ class Py3status:
         self._state_icon_color_map = {
             STATE.Playing: {
                 "state_icon": self.state_play,
-                "color": self.py3.COLOR_PLAYING or self.py3.COLOR_GOOD,
+                "state_color": self.py3.COLOR_PLAYING or self.py3.COLOR_GOOD,
                 "toggle_icon": self.state_pause,
                 "cached_until": self.cache_timeout,
             },
             STATE.Paused: {
                 "state_icon": self.state_pause,
-                "color": self.py3.COLOR_PAUSED or self.py3.COLOR_DEGRADED,
+                "state_color": self.py3.COLOR_PAUSED or self.py3.COLOR_DEGRADED,
                 "toggle_icon": self.state_play,
                 "cached_until": self.py3.CACHE_FOREVER,
             },
             STATE.Stopped: {
                 "state_icon": self.state_stop,
-                "color": self.py3.COLOR_STOPPED or self.py3.COLOR_BAD,
+                "state_color": self.py3.COLOR_STOPPED or self.py3.COLOR_BAD,
                 "toggle_icon": self.state_play,
                 "cached_until": self.py3.CACHE_FOREVER,
             },
         }
 
-        self._color_active = self.py3.COLOR_CONTROL_ACTIVE or self.py3.COLOR_GOOD
-        self._color_inactive = self.py3.COLOR_CONTROL_INACTIVE or self.py3.COLOR_BAD
+        self.color_control_active = self.py3.COLOR_CONTROL_ACTIVE or self.py3.COLOR_GOOD
+        self.color_control_inactive = self.py3.COLOR_CONTROL_INACTIVE or self.py3.COLOR_BAD
 
         self._format_contains_metadata = False
         self._metadata_keys = ["album", "artist", "title", "nowplaying", "length", "tracknumber"]
@@ -687,7 +691,7 @@ class Py3status:
 
         current_player = self._player
         cached_until = self.py3.CACHE_FOREVER
-        color = self.py3.COLOR_BAD
+        self.color_status = self.py3.COLOR_BAD
 
         if current_player:
             current_player_id = str(current_player.id)
@@ -701,7 +705,7 @@ class Py3status:
                     )
 
                 placeholders = {"state": current_state_map["state_icon"]}
-                color = current_state_map["color"]
+                self.color_status = current_state_map["state_color"]
                 composite = self.py3.safe_format(
                     self.format,
                     dict(self._empty_response, **placeholders, **data),
@@ -720,24 +724,17 @@ class Py3status:
                 return {
                     # Can't decide what is good time to restart 3 retry cycle
                     "cached_until": self.py3.time_in(10),
-                    "color": self.py3.COLOR_BAD,
-                    "composite": [
-                        {
-                            "full_text": "Something went wrong",
-                            "color": self.py3.COLOR_BAD,
-                        }
-                    ],
+                    "composite": self.py3.safe_format(r"\?color=bad Something went wrong"),
                 }
 
         else:
-            composite = [{"full_text": self.format_none, "color": color}]
+            composite = self.py3.safe_format(self.format_none)
 
         # we are outputting so reset tries
         self._tries = 0
 
         response = {
             "cached_until": cached_until,
-            "color": color,
             "composite": composite,
         }
         return response
