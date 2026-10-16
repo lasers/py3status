@@ -1,11 +1,11 @@
-"""
+r"""
 Display Insync status.
 
 Thanks to Iain Tatch <iain.tatch@gmail.com> for the script that this is based on.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default '{status} {queued}')
+    format: display format for this module (default '\?color=status {status} {queued}')
     status_offline: show when Insync is offline (default 'OFFLINE')
     status_paused: show when Insync is paused (default 'PAUSED')
     status_share: show when Insync is sharing (default 'SHARE')
@@ -47,7 +47,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "{status} {queued}"
+    format = r"\?color=status {status} {queued}"
     status_offline = "OFFLINE"
     status_paused = "PAUSED"
     status_share = "SHARE"
@@ -58,16 +58,21 @@ class Py3status:
         if not self.py3.check_commands("insync"):
             raise Exception(STRING_NOT_INSTALLED)
 
+    def _unexpected(self):
+        self.color_status = self.py3.COLOR_ERROR or self.py3.COLOR_BAD
+        return {
+            "cached_until": self.py3.time_in(self.cache_timeout),
+            "full_text": self.py3.safe_format(
+                r"\?color=status {error}", {"error": STRING_UNEXPECTED}
+            ),
+        }
+
     def insync(self):
         # sync progress
         try:
             queued = self.py3.command_output(["insync", "get_sync_progress"]).splitlines()
         except Exception:
-            return {
-                "cached_until": self.py3.time_in(self.cache_timeout),
-                "color": self.py3.COLOR_ERROR or self.py3.COLOR_BAD,
-                "full_text": STRING_UNEXPECTED,
-            }
+            return self._unexpected()
         queued = [q for q in queued if q != ""]
         if len(queued) > 0 and "queued" in queued[-1]:
             queued = queued[-1]
@@ -79,21 +84,17 @@ class Py3status:
         try:
             status = self.py3.command_output(["insync", "get_status"]).strip()
         except Exception:
-            return {
-                "cached_until": self.py3.time_in(self.cache_timeout),
-                "color": self.py3.COLOR_ERROR or self.py3.COLOR_BAD,
-                "full_text": STRING_UNEXPECTED,
-            }
+            return self._unexpected()
 
-        color = self.py3.COLOR_DEGRADED
+        self.color_status = self.py3.COLOR_DEGRADED
         format = self.format
         if status == "Insync doesn't seem to be running. Start it first.":
             self.py3.error(STRING_ERROR)
         elif status == "OFFLINE":
-            color = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
             status = self.status_offline
         elif status == "SYNCED":
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             status = self.status_synced
         elif status == "SHARE":
             status = self.status_share
@@ -103,7 +104,6 @@ class Py3status:
             status = self.status_syncing
 
         return {
-            "color": color,
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": self.py3.safe_format(format, {"status": status, "queued": queued}),
         }
