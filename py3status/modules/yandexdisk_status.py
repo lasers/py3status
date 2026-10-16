@@ -1,9 +1,9 @@
-"""
+r"""
 Display Yandex.Disk status.
 
 Configuration parameters:
     cache_timeout: refresh interval for this module (default 10)
-    format: display format for this module (default 'Yandex.Disk: {status}')
+    format: display format for this module (default '\?color=status Yandex.Disk: {status}')
     status_busy: show when Yandex.Disk is busy (default None)
     status_off: show when Yandex.Disk isn't running (default 'Not started')
     status_on: show when Yandex.Disk is idling (default 'Idle')
@@ -40,7 +40,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 10
-    format = "Yandex.Disk: {status}"
+    format = r"\?color=status Yandex.Disk: {status}"
     status_busy = None
     status_off = "Not started"
     status_on = "Idle"
@@ -53,19 +53,18 @@ class Py3status:
         status = self.py3.command_output("yandex-disk status").splitlines()[0]
 
         if status == "Error: daemon not started":
-            color = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
             status = self.status_off
         elif status == "Synchronization core status: idle":
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
             status = self.status_on
         else:
-            color = self.py3.COLOR_DEGRADED
+            self.color_status = self.py3.COLOR_DEGRADED
             if self.status_busy is not None:
                 status = self.status_busy
 
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": color,
             "full_text": self.py3.safe_format(self.format, {"status": status}),
         }
 
