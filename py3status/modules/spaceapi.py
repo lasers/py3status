@@ -1,10 +1,10 @@
-"""
+r"""
 Display status of a given hackerspace.
 
 Configuration parameters:
     button_url: mouse button to open URL sent in space's API (default 3)
     cache_timeout: refresh interval for this module (default 60)
-    format: display format for this module (default '{state}[ {lastchanged}]')
+    format: display format for this module (default '\?color=status {state}[ {lastchanged}]')
     format_lastchanged: display format for time (default 'since %H:%M')
     state_closed: show when hackerspace is closed (default 'closed')
     state_open: show when hackerspace is open (default 'open')
@@ -43,7 +43,7 @@ class Py3status:
     # available configuration parameters
     button_url = 3
     cache_timeout = 60
-    format = "{state}[ {lastchanged}]"
+    format = r"\?color=status {state}[ {lastchanged}]"
     format_lastchanged = "since %H:%M"
     state_closed = "closed"
     state_open = "open"
@@ -87,7 +87,7 @@ class Py3status:
         self.hackerspace_url = None
 
     def spaceapi(self):
-        color = self.color_closed
+        self.color_status = self.color_closed
         state = self.state_closed
         lastchanged = "unknown"
 
@@ -95,7 +95,7 @@ class Py3status:
             data = self.py3.request(self.url).json()
 
             if data["state"]["open"]:
-                color = self.color_open
+                self.color_status = self.color_open
                 state = self.state_open
 
             if "lastchange" in data["state"]:
@@ -110,7 +110,9 @@ class Py3status:
             )
 
         except (self.py3.RequestException, KeyError):
-            full_text = STRING_UNAVAILABLE
+            full_text = self.py3.safe_format(
+                r"\?color=status {error}", {"error": STRING_UNAVAILABLE}
+            )
             data = {}
 
         self.hackerspace_url = data.get("url")
@@ -118,7 +120,6 @@ class Py3status:
         return {
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": full_text,
-            "color": color,
         }
 
     def on_click(self, event):
