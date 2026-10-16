@@ -1,4 +1,4 @@
-"""
+r"""
 Display output of a given script.
 
 Display output of any executable script set by `script_path`. Only the first
@@ -16,7 +16,7 @@ Configuration parameters:
         (default 15)
     convert_numbers: convert decimal numbers to a numeric type
         (default True)
-    format: see placeholders below (default '{output}')
+    format: see placeholders below (default '\?color=status {output}')
     localize: should script output be localized (if available)
         (default True)
     script_path: script you want to show output of (compulsory)
@@ -58,7 +58,7 @@ class Py3status:
     button_show_notification = None
     cache_timeout = 15
     convert_numbers = True
-    format = "{output}"
+    format = r"\?color=status {output}"
     localize = True
     script_path = None
     strip_output = False
@@ -69,6 +69,7 @@ class Py3status:
 
     def external_script(self):
         output_lines = None
+        self.color_status = None
         response = {}
         response["cached_until"] = self.py3.time_in(self.cache_timeout)
         try:
@@ -80,7 +81,7 @@ class Py3status:
                 words = output_lines[1].split()
                 for word in words:
                     if re.search(r"^#[0-9a-fA-F]{6}$", word):
-                        response["color"] = word
+                        self.color_status = word
                     elif word == "urgent":
                         response["urgent"] = True
         except self.py3.CommandError as e:
