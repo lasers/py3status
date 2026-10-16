@@ -1,4 +1,4 @@
-"""
+r"""
 Display information about your smartphone with KDEConnector.
 
 Configuration parameters:
@@ -8,9 +8,9 @@ Configuration parameters:
     device_id: alternatively to the device name you can set your device id here
         (default None)
     format: see placeholders below
-        (default '{name}{notif_status} {bat_status} {charge}%')
+        (default '\?color=status {name}{notif_status} {bat_status} {charge}%')
     format_disconnected: text if device is disconnected
-        (default 'device disconnected')
+        (default '\?color=status device disconnected')
     low_threshold: percentage value when text is twitch to color_bad
         (default 20)
     status_bat: text when battery is discharged (default '⬇')
@@ -105,8 +105,8 @@ class Py3status:
     cache_timeout = 30
     device = None
     device_id = None
-    format = "{name}{notif_status} {bat_status} {charge}%"
-    format_disconnected = "device disconnected"
+    format = r"\?color=status {name}{notif_status} {bat_status} {charge}%"
+    format_disconnected = r"\?color=status device disconnected"
     low_threshold = 20
     status_bat = "⬇"
     status_chr = "⬆"
@@ -124,6 +124,7 @@ class Py3status:
         self._not = None
 
         self._result = {}
+        self._battery_color = None
 
         self._signal_reachable_changed = None
         self._signal_battery = None
@@ -447,7 +448,7 @@ class Py3status:
         if charge == -1:
             self._result["charge"] = UNKNOWN_SYMBOL
             self._result["bat_status"] = UNKNOWN
-            self._result["color"] = "#FFFFFF"
+            self._battery_color = "#FFFFFF"
             return
 
         if charge is not None:
@@ -456,17 +457,17 @@ class Py3status:
         if isCharging is not None:
             if isCharging:
                 self._result["bat_status"] = self.status_chr
-                self._result["color"] = self.py3.COLOR_GOOD
+                self._battery_color = self.py3.COLOR_GOOD
             else:
                 self._result["bat_status"] = self.status_bat
-                self._result["color"] = self.py3.COLOR_DEGRADED
+                self._battery_color = self.py3.COLOR_DEGRADED
 
             if (
                 not isCharging
                 and isinstance(self._result["charge"], int)
                 and self._result["charge"] <= self.low_threshold
             ):
-                self._result["color"] = self.py3.COLOR_BAD
+                self._battery_color = self.py3.COLOR_BAD
 
         if charge is not None:
             if charge > 99:
@@ -494,21 +495,21 @@ class Py3status:
         """
         device = self._get_device()
         if device is None:
-            return (UNKNOWN_DEVICE, self.py3.COLOR_BAD)
+            return self._unknown_device()
 
         if not device["isReachable"] or not device["isTrusted"]:
-            return (
-                self.py3.safe_format(self.format_disconnected, {"name": device["name"]}),
-                self.py3.COLOR_BAD,
-            )
+            self.color_status = self.py3.COLOR_BAD
+            return self.py3.safe_format(self.format_disconnected, {"name": device["name"]})
 
-        return (
-            self.py3.safe_format(
-                self.format,
-                dict(name=device["name"], **self._result),
-            ),
-            self._result.get("color"),
+        self.color_status = self._battery_color
+        return self.py3.safe_format(
+            self.format,
+            dict(name=device["name"], **self._result),
         )
+
+    def _unknown_device(self):
+        self.color_status = self.py3.COLOR_BAD
+        return self.py3.safe_format(r"\?color=status {text}", {"text": UNKNOWN_DEVICE})
 
     def _update_conn_info(self):
         if self._format_contains_connection_status:
@@ -532,12 +533,11 @@ class Py3status:
             raise KeyboardInterrupt
 
         if self._bus_initialized:
-            text, color = self._get_text()
+            text = self._get_text()
             cached_until = self.py3.CACHE_FOREVER
 
         else:
-            text = UNKNOWN_DEVICE
-            color = self.py3.COLOR_BAD
+            text = self._unknown_device()
             cached_until = self.py3.time_in(self.cache_timeout)
             self._bus_initialized = self._init_dbus()
             if self._bus_initialized:
@@ -546,12 +546,10 @@ class Py3status:
                 self._update_battery_info()
                 self.py3.update()
 
-        response = {
+        return {
             "cached_until": cached_until,
             "full_text": text,
-            "color": color,
         }
-        return response
 
     def kill(self):
         self._kill = True
