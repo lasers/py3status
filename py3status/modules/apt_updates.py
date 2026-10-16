@@ -7,7 +7,7 @@ This will display a count of how many 'apt' updates are waiting to be installed.
 Configuration parameters:
     cache_timeout: How often we refresh this module in seconds (default 600)
     format: Display format to use
-        (default 'UPD[\?not_zero : {apt}]')
+        (default '\?color=status UPD[\?not_zero : {apt}]')
 
 Format placeholders:
     {apt} Number of pending apt updates
@@ -33,7 +33,7 @@ class Py3status:
 
     # available configuration parameters
     cache_timeout = 600
-    format = r"UPD[\?not_zero : {apt}]"
+    format = r"\?color=status UPD[\?not_zero : {apt}]"
 
     def post_config_hook(self):
         if not self.py3.check_commands("apt"):
@@ -52,12 +52,11 @@ class Py3status:
     def apt_updates(self):
         apt_updates = self._check_apt_updates()
 
-        color = self.py3.COLOR_DEGRADED
+        self.color_status = self.py3.COLOR_DEGRADED
         if apt_updates == 0:
-            color = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
         full_text = self.py3.safe_format(self.format, {"apt": apt_updates})
         return {
-            "color": color,
             "cached_until": self.py3.time_in(self.cache_timeout),
             "full_text": full_text,
         }
