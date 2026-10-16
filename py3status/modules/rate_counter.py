@@ -1,4 +1,4 @@
-"""
+r"""
 Display time spent and calculate the price of your service.
 
 Configuration parameters:
@@ -7,7 +7,7 @@ Configuration parameters:
         and restore it the next session
         (default '~/.i3/py3status/counter-config.save')
     format: output format string
-        (default 'Time: {days} day {hours}:{mins:02d} Cost: {total}')
+        (default '\?color=status Time: {days} day {hours}:{mins:02d} Cost: {total}')
     format_money: output format string
         (default '{price}$')
     hour_price: your price per hour (default 30)
@@ -52,7 +52,7 @@ class Py3status:
     # available configuration parameters
     cache_timeout = 5
     config_file = "~/.i3/py3status/counter-config.save"
-    format = "Time: {days} day {hours}:{mins:02d} Cost: {total}"
+    format = r"\?color=status Time: {days} day {hours}:{mins:02d} Cost: {total}"
     format_money = "{price}$"
     hour_price = 30
     tax = 1.02
@@ -116,10 +116,10 @@ class Py3status:
     def rate_counter(self):
         running_time = 0.0
         if self.running:
-            color = self.py3.COLOR_RUNNING or self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_RUNNING or self.py3.COLOR_GOOD
             running_time = self._current_time - self.start_time
         else:
-            color = self.py3.COLOR_STOPPED or self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_STOPPED or self.py3.COLOR_BAD
             running_time = self.saved_time
 
         days, hours, mins, secs = self._secs_to_dhms(running_time)
@@ -130,7 +130,6 @@ class Py3status:
         tax_cost = self.py3.safe_format(self.format_money, {"price": f"{total - subtotal:.2f}"})
         response = {
             "cached_until": self.py3.time_in(self.cache_timeout),
-            "color": color,
             "full_text": self.py3.safe_format(
                 self.format,
                 dict(
