@@ -1,4 +1,4 @@
-"""
+r"""
 Display number of unread messages from IMAP account.
 
 Configuration parameters:
@@ -13,7 +13,7 @@ Configuration parameters:
     criterion: status of emails to check for (default 'UNSEEN')
     debug: log warnings (default False)
     degraded_when_stale: color as degraded when updating failed (default True)
-    format: display format for this module (default 'Mail: {unseen}')
+    format: display format for this module (default '\?color=status Mail: {unseen}')
     hide_if_zero: hide this module when no new mail (default False)
     mailbox: name of the mailbox to check (default 'INBOX')
     password: login password (default None)
@@ -86,7 +86,7 @@ class Py3status:
     criterion = "UNSEEN"
     debug = False
     degraded_when_stale = True
-    format = "Mail: {unseen}"
+    format = r"\?color=status Mail: {unseen}"
     hide_if_zero = False
     mailbox = "INBOX"
     password = None
@@ -364,10 +364,17 @@ class Py3status:
             self.mail_error = None
 
         # II -- format response
+        self.color_status = None
+        if self.mail_count is None:
+            self.color_status = self.py3.COLOR_BAD
+        elif self.mail_count > 0:
+            self.color_status = self.py3.COLOR_NEW_MAIL or self.py3.COLOR_GOOD
+        if self.network_error is not None and self.degraded_when_stale:
+            self.color_status = self.py3.COLOR_DEGRADED
+
         response["full_text"] = self.py3.safe_format(self.format, {"unseen": self.mail_count})
 
         if self.mail_count is None:
-            response["color"] = (self.py3.COLOR_BAD,)
             response["full_text"] = self.py3.safe_format(
                 self.format, {"unseen": STRING_UNAVAILABLE}
             )
@@ -376,10 +383,7 @@ class Py3status:
         elif self.mail_count == 0 and self.hide_if_zero:
             response["full_text"] = ""
         elif self.mail_count > 0:
-            response["color"] = self.py3.COLOR_NEW_MAIL or self.py3.COLOR_GOOD
             response["urgent"] = self.allow_urgent
-        if self.network_error is not None and self.degraded_when_stale:
-            response["color"] = self.py3.COLOR_DEGRADED
 
         return response
 
