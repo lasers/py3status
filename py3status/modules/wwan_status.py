@@ -1,4 +1,4 @@
-"""
+r"""
 Display network and IP address for newer Huwei modems.
 
 It is tested for Huawei E3276 (usb-id 12d1:1506) aka Telekom Speed
@@ -17,15 +17,15 @@ Configuration parameters:
         is a 4G connection.
         (default False)
     format_down: What to display when the modem is not plugged in
-        (default 'WWAN: down')
+        (default '\?color=status WWAN: down')
     format_error: What to display when modem can't be accessed.
-        (default 'WWAN: {error}')
+        (default '\?color=status WWAN: {error}')
     format_no_service: What to display when the modem does not have a
         network connection. This allows to omit the (then
         meaningless) network generation.
-        (default 'WWAN: {status} {ip}')
+        (default '\?color=status WWAN: {status} {ip}')
     format_up: What to display upon regular connection
-        (default 'WWAN: {status} ({netgen}) {ip}')
+        (default '\?color=status WWAN: {status} ({netgen}) {ip}')
     interface: The default interface to obtain the IP address
         from. For wvdial this is most likely ppp0.
         For netctl it can be different.
@@ -69,10 +69,10 @@ class Py3status:
     baudrate = 115200
     cache_timeout = 5
     consider_3G_degraded = False
-    format_down = "WWAN: down"
-    format_error = "WWAN: {error}"
-    format_no_service = "WWAN: {status} {ip}"
-    format_up = "WWAN: {status} ({netgen}) {ip}"
+    format_down = r"\?color=status WWAN: down"
+    format_error = r"\?color=status WWAN: {error}"
+    format_no_service = r"\?color=status WWAN: {status} {ip}"
+    format_up = r"\?color=status WWAN: {status} ({netgen}) {ip}"
     interface = "ppp0"
     modem = "/dev/ttyUSB1"
     modem_timeout = 0.4
@@ -132,10 +132,10 @@ class Py3status:
                 # file
                 # 2) if/when you unplug the device
                 print("Permission error")
+                self.color_status = self.py3.COLOR_BAD
                 response["full_text"] = self.py3.safe_format(
                     self.format_error, dict(error="no access to " + self.modem)
                 )
-                response["color"] = self.py3.COLOR_BAD
                 return response
             # Dissect response
             for line in modem_response.decode("utf-8").split("\n"):
@@ -149,21 +149,21 @@ class Py3status:
                     netgen = len(modem_answer[-2]) + 1
                     netmode = modem_answer[-1].rstrip()[1:-1]
                     if netmode == "NO SERVICE":
+                        self.color_status = self.py3.COLOR_BAD
                         response["full_text"] = self.py3.safe_format(
                             self.format_no_service, dict(status=netmode, ip=ip)
                         )
-                        response["color"] = self.py3.COLOR_BAD
                     else:
+                        if netgen <= degraded_netgen:
+                            self.color_status = self.py3.COLOR_DEGRADED
+                        else:
+                            self.color_status = self.py3.COLOR_GOOD
                         response["full_text"] = self.py3.safe_format(
                             self.format_up,
                             dict(status=netmode, netgen=str(netgen) + "G", ip=ip),
                         )
-                        if netgen <= degraded_netgen:
-                            response["color"] = self.py3.COLOR_DEGRADED
-                        else:
-                            response["color"] = self.py3.COLOR_GOOD
                 elif line.startswith("COMMAND NOT SUPPORT") or line.startswith("ERROR"):
-                    response["color"] = self.py3.COLOR_BAD
+                    self.color_status = self.py3.COLOR_BAD
                     response["full_text"] = self.py3.safe_format(
                         self.format_error, {"error": "unsupported modem"}
                     )
@@ -171,8 +171,8 @@ class Py3status:
                     # Outputs can be multiline, so just try the next one
                     pass
         else:
-            response["color"] = self.py3.COLOR_BAD
-            response["full_text"] = self.format_down
+            self.color_status = self.py3.COLOR_BAD
+            response["full_text"] = self.py3.safe_format(self.format_down)
         return response
 
 
