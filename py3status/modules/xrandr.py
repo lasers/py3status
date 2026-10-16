@@ -1,4 +1,4 @@
-"""
+r"""
 Control screen layout.
 
 This modules allows you to handle your screens outputs directly from your bar!
@@ -51,7 +51,7 @@ Configuration parameters:
         when the module starts (saves you from having to configure xorg)
         (default None)
     format: display format for xrandr
-        (default '{output}')
+        (default '\?color=status {output}')
     hide_if_single_combination: hide if only one combination is available
         (default False)
     icon_clone: icon used to display a 'clone' combination
@@ -155,7 +155,7 @@ class Py3status:
     fixed_width = True
     force_on_change = []
     force_on_start = None
-    format = "{output}"
+    format = r"\?color=status {output}"
     hide_if_single_combination = False
     icon_clone = "="
     icon_extend = "+"
@@ -450,24 +450,18 @@ class Py3status:
         self._choose_what_to_display()
 
         if len(self.available_combinations) < 2 and self.hide_if_single_combination:
-            full_text = self.py3.safe_format(self.format, {"output": ""})
+            output = ""
+        elif self.fixed_width is True:
+            output = self._center(self.displayed)
         else:
-            if self.fixed_width is True:
-                output = self._center(self.displayed)
-            else:
-                output = self.displayed
-            full_text = self.py3.safe_format(self.format, {"output": output})
-
-        response = {
-            "cached_until": self.py3.time_in(self.cache_timeout),
-            "full_text": full_text,
-        }
+            output = self.displayed
 
         # coloration
+        self.color_status = None
         if self.displayed == self.active_layout:
-            response["color"] = self.py3.COLOR_GOOD
+            self.color_status = self.py3.COLOR_GOOD
         elif self.displayed not in self.available_combinations:
-            response["color"] = self.py3.COLOR_BAD
+            self.color_status = self.py3.COLOR_BAD
 
         # force default layout setup at module startup
         if self.force_on_start is not None:
@@ -485,11 +479,14 @@ class Py3status:
 
         # fallback detection
         if self.active_layout not in self.available_combinations:
-            response["color"] = self.py3.COLOR_DEGRADED
+            self.color_status = self.py3.COLOR_DEGRADED
             if self.fallback is True:
                 self._fallback_to_available_output()
 
-        return response
+        return {
+            "cached_until": self.py3.time_in(self.cache_timeout),
+            "full_text": self.py3.safe_format(self.format, {"output": output}),
+        }
 
     def on_click(self, event):
         """
