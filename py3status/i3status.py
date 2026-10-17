@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from json import loads
 from signal import SIG_IGN, SIGSTOP, SIGTSTP, SIGUSR1, signal
 from subprocess import PIPE, Popen
@@ -212,6 +212,9 @@ class I3statusModule:
         delta = datetime(date.year, date.month, date.day, date.hour, date.minute) - datetime(
             utcnow.year, utcnow.month, utcnow.day, utcnow.hour, utcnow.minute
         )
+        # time zones are whole 15 minutes, this drops the minute lost when a
+        # minute passes between i3status printing the time and us reading it
+        delta = timedelta(minutes=round(delta.total_seconds() / 900) * 15)
         # create our custom timezone
         try:
             self.tz = timezone(delta, i3s_time_tz)
