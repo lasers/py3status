@@ -885,6 +885,7 @@ class Module:
                         elif method == "post_config_hook":
                             self.has_post_config_hook = True
                         else:
+                            # TODO: module: remove multiple update methods
                             # the method_obj stores infos about each method
                             # of this module.
                             method_obj = {
