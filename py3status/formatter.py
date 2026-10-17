@@ -8,6 +8,13 @@ from py3status.composite import Composite
 from py3status.constants import COLOR_NAMES, COLOR_NAMES_EXCLUDED
 
 
+def is_color_option(name):
+    """
+    Check if a config option is a color, eg color or color_good.
+    """
+    return name == "color" or name.startswith("color_")
+
+
 def expand_color(color, default=None, passthrough=False, block=None):
     """
     Expand various colors to #RRGGBB.
