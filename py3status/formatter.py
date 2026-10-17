@@ -619,6 +619,9 @@ class Block:
             )
             if color == "hidden":
                 return False, []
+            # modules may keep color names
+            if color and color[0] != "#":
+                color = expand_color(color, passthrough=True)
 
         text = ""
         out = []
