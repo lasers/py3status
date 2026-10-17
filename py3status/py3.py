@@ -616,8 +616,11 @@ class Py3:
         # Unless the requested update is in less than a second
         if sync_to is None:
             if seconds and seconds < 1:
-                if 1 % seconds == 0:
+                if (1 / seconds).is_integer():
                     sync_to = seconds
+                    # keep a margin, like the -0.1 below, so a module asking
+                    # again right after it ran doesn't skip a step
+                    seconds -= seconds / 2
                 else:
                     sync_to = 0
             else:
