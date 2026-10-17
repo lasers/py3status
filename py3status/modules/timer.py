@@ -81,7 +81,7 @@ class Py3status:
             self.alarm = True
         if self.command:
             self.py3.command_run(self.command)
-        self.timer()
+        self.py3.update()
 
     def timer(self):
         if self.running or self.done:
