@@ -74,7 +74,7 @@ class Py3status:
         """
         self.running = False
         self.color = self.py3.COLOR_BAD
-        self.time_left = 0
+        self.time_left = None
         self.done = True
         if self.sound:
             self.py3.play_sound(self.sound)
@@ -86,11 +86,10 @@ class Py3status:
     def timer(self):
         if self.running or self.done:
             t = max(0, self.end_time - time.monotonic())
+        elif self.time_left is None:
+            t = self.time
         else:
-            if self.time_left:
-                t = self.time_left
-            else:
-                t = self.time
+            t = self.time_left
 
         # round up, so the display reaches zero when the alarm fires
         hours, t = divmod(math.ceil(t), 3600)
@@ -160,15 +159,16 @@ class Py3status:
             else:
                 # start/restart timer
                 self.running = True
-                if self.time_left:
-                    self.end_time = time.monotonic() + self.time_left
+                if self.time_left is None:
+                    duration = self.time
                 else:
-                    self.end_time = time.monotonic() + self.time
+                    duration = self.time_left
+                self.end_time = time.monotonic() + duration
                 self.color = self.py3.COLOR_GOOD
                 if self.alarm_timer:
                     self.alarm_timer.cancel()
                 self.done = False
-                self.alarm_timer = Timer(self.time_left or self.time, self._time_up)
+                self.alarm_timer = Timer(duration, self._time_up)
                 self.alarm_timer.start()
 
         if button == 2:
@@ -182,20 +182,20 @@ class Py3status:
         if not self.running:
             self.done = False
             # change timer section HH:MM:SS
-            if self.time_left:
-                t = self.time_left
-            else:
+            if self.time_left is None:
                 t = self.time
+            else:
+                t = self.time_left
             if button == 4:
                 t += deltas.get(index, 0)
             if button == 5:
                 t -= deltas.get(index, 0)
                 if t < 0:
                     t = 0
-            if self.time_left:
-                self.time_left = t
-            else:
+            if self.time_left is None:
                 self.time = t
+            else:
+                self.time_left = t
 
 
 if __name__ == "__main__":
