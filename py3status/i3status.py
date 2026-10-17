@@ -149,9 +149,11 @@ class I3statusModule:
                 elif self.time_zone_check_due and (t - self.time_zone_check_due > 5 + interval):
                     self.time_zone_check_due = 0
                 else:
-                    # Check again in 30 mins.  We do this in case the timezone
-                    # used has switched to/from summer time
-                    self.time_zone_check_due = ((int(t) // 1800) * 1800) + 1800
+                    # Check again after the next wall clock minute, once
+                    # i3status has printed a time from after it, in case the
+                    # time zone switched to/from summer time.  That happens on
+                    # a local hour or half hour, which is not always one in UTC.
+                    self.time_zone_check_due = self.py3.time_in(sync_to=60) + interval
                 if not self.time_started:
                     self.time_started = True
                     self.i3status.py3_wrapper.timeout_queue_add(self)
