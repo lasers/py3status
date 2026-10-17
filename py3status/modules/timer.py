@@ -98,7 +98,9 @@ class Py3status:
         seconds = t
 
         if self.running:
-            cached_until = self.py3.time_in(0, offset=self.cache_offset)
+            # tick on this timer's own seconds, not the wall clock's
+            end_time = time.time() + self.end_time - time.monotonic()
+            cached_until = self.py3.time_in(0, offset=end_time)
         else:
             cached_until = self.py3.CACHE_FOREVER
 
@@ -162,7 +164,6 @@ class Py3status:
                     self.end_time = time.monotonic() + self.time_left
                 else:
                     self.end_time = time.monotonic() + self.time
-                self.cache_offset = self.end_time % 1
                 self.color = self.py3.COLOR_GOOD
                 if self.alarm_timer:
                     self.alarm_timer.cancel()
