@@ -593,7 +593,7 @@ class Py3:
 
         :param offset: is used to alter the base time used. A timer that started at a
             certain time could set that as the offset and any synchronization would
-            then be relative to that time.
+            then be relative to that time. It is a ``time.time()`` value.
         """
 
         # if called with CACHE_FOREVER we just return this
@@ -625,14 +625,16 @@ class Py3:
                 if seconds:
                     seconds -= 0.1
 
+        # sync in wall clock time, relative to offset, then return the
+        # matching time.monotonic() value that py3status schedules with
         current_time = time.time()
-        requested = time.monotonic() + seconds - offset
+        requested = current_time + seconds - offset
 
         # if sync_to then we find the sync time for the requested time
         if sync_to:
-            requested = (requested + sync_to) - (current_time % sync_to)
+            requested = (requested + sync_to) - (requested % sync_to)
 
-        return requested + offset
+        return time.monotonic() + requested + offset - current_time
 
     def format_contains(self, format_string, names):
         """
