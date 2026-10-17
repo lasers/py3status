@@ -45,6 +45,7 @@ paused
 ]
 """
 
+import math
 import time
 from threading import Timer
 
@@ -84,16 +85,15 @@ class Py3status:
 
     def timer(self):
         if self.running or self.done:
-            t = int(self.end_time - time.monotonic())
-            if t <= 0:
-                t = 0
+            t = max(0, self.end_time - time.monotonic())
         else:
             if self.time_left:
                 t = self.time_left
             else:
                 t = self.time
 
-        hours, t = divmod(t, 3600)
+        # round up, so the display reaches zero when the alarm fires
+        hours, t = divmod(math.ceil(t), 3600)
         minutes, t = divmod(t, 60)
         seconds = t
 
@@ -153,7 +153,7 @@ class Py3status:
             if self.running:
                 # pause timer
                 self.running = False
-                self.time_left = int(self.end_time - time.monotonic())
+                self.time_left = max(0, self.end_time - time.monotonic())
                 self.color = self.py3.COLOR_DEGRADED
                 if self.alarm_timer:
                     self.alarm_timer.cancel()
