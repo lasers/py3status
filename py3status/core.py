@@ -7,7 +7,7 @@ import time
 from collections import deque
 from pathlib import Path
 from signal import SIGCONT, SIGTERM, SIGTSTP, SIGUSR1, Signals, signal
-from subprocess import Popen
+from subprocess import Popen, run
 from threading import Event, Thread
 from traceback import extract_tb, format_stack, format_tb
 
@@ -597,32 +597,22 @@ class Py3statusWrapper:
             return
         logger.debug("git repo: %s", git_path.parent)
 
-        # determine current branch or detached head
-        head = (git_path / "HEAD").read_text().strip()
-        detached = not head.startswith("ref: ")
-        branch = (
-            f"HEAD detached at {head[:7]}" if detached else head.removeprefix("ref: refs/heads/")
-        )
-        logger.debug("git branch: %s", branch)
-
-        # read latest current-branch reflog entry
-        if detached:
-            return
-        line, log_path = "", git_path / "logs" / "refs" / "heads" / branch
+        cmd = ["git", "-C", git_path.parent, "log", "-1", "--format=%D%x00%h%x00%s"]
         try:
-            with log_path.open() as f:
-                for line in f:
-                    pass
+            result = run(cmd, capture_output=True, text=True).stdout.strip()
         except OSError:
+            logger.warning("git not found, unable to log git information")
             return
-        if not line:
+        # no commits yet, or git produced no output
+        if not result:
             return
 
-        # extract sha and reflog action
-        sha = line.split(" ", 2)[1][:7]
-        fields = line.split("\t", 1)
-        action = fields[1].strip() if len(fields) > 1 else "(unknown)"
-        logger.debug("git reflog: %s %s", sha, action)
+        # branch follows "HEAD -> "; a detached HEAD has no arrow
+        refs, commit, msg = result.split("\0")
+        branch = refs.partition("HEAD -> ")[2].split(",")[0]
+        logger.debug("git branch: %s", branch or "detached HEAD")
+        logger.debug("git commit: %s", commit)
+        logger.debug("git msg: %s", msg)
 
     def setup(self):
         """
