@@ -597,39 +597,32 @@ class Py3statusWrapper:
             return
         logger.debug("git repo: %s", git_path.parent)
 
-        try:
-            import git
-        except ImportError:
-            repo = None
-        else:
-            try:
-                repo = git.Repo(git_path.parent)
-            except Exception:
-                repo = None
+        # determine current branch or detached head
+        head = (git_path / "HEAD").read_text().strip()
+        detached = not head.startswith("ref: ")
+        branch = (
+            f"HEAD detached at {head[:7]}" if detached else head.removeprefix("ref: refs/heads/")
+        )
+        logger.debug("git branch: %s", branch)
 
-        if not repo:
-            try:
-                with (git_path / "HEAD").open() as f:
-                    out = f.readline()
-            except OSError:
-                logger.warning(
-                    "unable to read git HEAD, use python git package for more repo information"
-                )
-                return
-            branch = "/".join(out.strip().split("/")[2:])
-            logger.debug("git branch: %s", branch)
-            # last commit
-            log_path = git_path / "logs" / "refs" / "heads" / branch
+        # read latest current-branch reflog entry
+        if detached:
+            return
+        line, log_path = "", git_path / "logs" / "refs" / "heads" / branch
+        try:
             with log_path.open() as f:
-                out = f.readlines()[-1]
-            sha = out.split(" ")[1][:7]
-            msg = ":".join(out.strip().split("\t")[-1].split(":")[1:])
-            logger.debug("git commit: %s%s", sha, msg)
-        else:
-            commit = repo.head.commit
-            logger.debug("git branch: %s", repo.active_branch.name)
-            logger.debug("git commit: %s %s", commit.hexsha[:7], commit.summary)
-            logger.debug("git clean: %s", not repo.is_dirty())
+                for line in f:
+                    pass
+        except OSError:
+            return
+        if not line:
+            return
+
+        # extract sha and reflog action
+        sha = line.split(" ", 2)[1][:7]
+        fields = line.split("\t", 1)
+        action = fields[1].strip() if len(fields) > 1 else "(unknown)"
+        logger.debug("git reflog: %s %s", sha, action)
 
     def setup(self):
         """
