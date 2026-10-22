@@ -591,13 +591,11 @@ class Py3statusWrapper:
                 handler.ident = "py3status: "
 
     def _log_gitversion(self):
-        # A git repo is detected looking for the .git directory
-
+        # running from git?
         git_path = Path(__file__).resolve().parent.parent / ".git"
-        if not git_path.exists():
+        if not git_path.is_dir():
             return
-
-        logger.info("running within git repo")
+        logger.debug("git repo: %s", git_path.parent)
 
         try:
             import git
@@ -619,19 +617,19 @@ class Py3statusWrapper:
                 )
                 return
             branch = "/".join(out.strip().split("/")[2:])
-            logger.info("git branch: %s", branch)
+            logger.debug("git branch: %s", branch)
             # last commit
             log_path = git_path / "logs" / "refs" / "heads" / branch
             with log_path.open() as f:
                 out = f.readlines()[-1]
             sha = out.split(" ")[1][:7]
             msg = ":".join(out.strip().split("\t")[-1].split(":")[1:])
-            logger.info("git commit: %s%s", sha, msg)
+            logger.debug("git commit: %s%s", sha, msg)
         else:
             commit = repo.head.commit
-            logger.info("git branch: %s", repo.active_branch.name)
-            logger.info("git commit: %s %s", commit.hexsha[:7], commit.summary)
-            logger.info("git clean: %s", not repo.is_dirty())
+            logger.debug("git branch: %s", repo.active_branch.name)
+            logger.debug("git commit: %s %s", commit.hexsha[:7], commit.summary)
+            logger.debug("git clean: %s", not repo.is_dirty())
 
     def setup(self):
         """
@@ -645,18 +643,16 @@ class Py3statusWrapper:
         # setup logging
         self._setup_logging()
 
-        # log py3status and python versions
+        # log versions
         logger.info("=" * 8)
-        msg = "starting py3status version {version} python {python_version}"
+        msg = "py3status {version}, python {python_version}, {wm_name} {wm_version}"
         logger.info(msg.format(**self.config))
-
-        # if running from git then log the branch and last commit
-        self._log_gitversion()
-
-        # log config file and window manager
         logger.info("config file: %s", self.config["i3status_config_path"])
-        logger.info("window manager: %s", self.config["wm_name"])
-        logger.debug("py3status started with config %s", self.config)
+
+        # log debug information
+        if logger.isEnabledFor(logging.DEBUG):
+            self._log_gitversion()
+            logger.debug("config: %s", self.config)
 
         # autodetect output_format
         output_format = self.config["py3_config"]["general"]["output_format"]
